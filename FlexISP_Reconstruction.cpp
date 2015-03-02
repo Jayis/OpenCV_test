@@ -82,6 +82,4 @@ void data_fidelity (Mat& x_k1, Mat& x_k, vector<Mat>& y, double tau) {
 	v = x_k - (tau * (- grad_x - grad_y + y[2]));	// whether this grad_x,grad_y should be + or -, need to be try
 
 	imwrite("Flex_output/data.png", v);
-
-
 }
