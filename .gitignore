@@ -7,5 +7,10 @@
 *.idb
 *.pdb
 *.filters
+<<<<<<< HEAD
 *.bmp
 *.png
+=======
+*.png
+*.bmp
+>>>>>>> origin/master
