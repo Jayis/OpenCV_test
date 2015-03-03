@@ -10,19 +10,39 @@ public:
 
 	double pos_x, pos_y;
 	double val;
-	double confidence;
-	double percetion;
+};
+
+class Influenced_Pixel;
+class Perception_Pixel;
+
+class HR_Pixel : public Pixel {
+public:
+	HR_Pixel();
+
+	int i, j;
+	double hBP_sum;
+	vector<Influenced_Pixel> influenced_pixels;
+};
+
+class LR_Pixel : public Pixel {
+public:
+	LR_Pixel();
+
 	int i, j, k;
+
+	double confidence;
+	double perception;
+	vector<Perception_Pixel> perception_pixels;
 };
 
 class Influenced_Pixel {
 public:
 	double hBP;
-	Pixel* pixel;
+	LR_Pixel* pixel;
 };
 
-class Influence_Bucket {
+class Perception_Pixel {
 public:
-	double hBP_sum;
-	vector<Influenced_Pixel> influenced_pixels;
+	double hPSF;
+	HR_Pixel* pixel;
 };

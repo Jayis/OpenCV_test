@@ -20,5 +20,4 @@ void BackProjection ( Mat& HRimg, double scale, vector<Mat>& imgs, vector<Mat>& 
 
 void BackProjection_Confidence ( Mat& HRimg, double scale, vector<Mat>& imgs, vector<Mat>& flows, Mat& PSF, Mat& BPkernel, TermCriteria& BPstop,  vector<Mat>& confidences );
 
-void HR_to_LR_percetion ( Mat& HRimg, vector < vector < vector <Pixel> > >& LR_pixels, double scale, Mat& PSF, bool is_super_PSF, double PSF_scale=0 );
 

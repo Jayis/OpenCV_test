@@ -1,6 +1,7 @@
 #include "Experiments.h"
 
 void FlexISP_test () {
+	/*
 	Mat in = imread("input/test/CIMG1439.JPG", IMREAD_GRAYSCALE);
 	Mat in_double;
 	in.convertTo(in_double, CV_64F);
@@ -17,7 +18,94 @@ void FlexISP_test () {
 
 	penalty(y, in_double, 1);
 	data_fidelity(in_double, in_double, y, 1);
+	*/
 
+	// forming resample matrix
+	
+
+	String test_set = "bear";
+	
+	vector<Mat> imgsC1;
+	vector<Mat> flows;
+
+	imgsC1.resize(4);
+	flows.resize(4);
+
+	for (int k = 0; k < 4; k++) {
+		imgsC1[k] = imread("input/" + test_set + "256_0" + int2str(k+1) + ".bmp", CV_LOAD_IMAGE_GRAYSCALE);
+	}
+
+	int LR_rows = imgsC1[0].rows;
+	int LR_cols = imgsC1[0].cols;
+	int HR_rows = LR_rows * 2;
+	int HR_cols = LR_cols * 2;
+
+	Ptr<DenseOpticalFlow> OptFlow = createOptFlow_DualTVL1();	
+	for (int k = 0; k < 4; k++) {
+		flows[k] = Mat::zeros(imgsC1[0].rows, imgsC1[0].cols, CV_32FC2);
+		OptFlow->calc(imgsC1[k], imgsC1[0], flows[k]);
+	}
+
+	Mat PSF = Mat::zeros(3,3,CV_64F);
+	Mat BPk = PSF;
+	
+	PSF.at<double>(0,0) = 0.0113;
+	PSF.at<double>(0,1) = 0.0838;
+	PSF.at<double>(0,2) = 0.0113;
+	PSF.at<double>(1,0) = 0.0838;
+	PSF.at<double>(1,1) = 0.6193;
+	PSF.at<double>(1,2) = 0.0838;
+	PSF.at<double>(2,0) = 0.0113;
+	PSF.at<double>(2,1) = 0.0838;
+	PSF.at<double>(2,2) = 0.0113;
+
+	Mat super_PSF;
+	Mat super_BPk;	
+	preInterpolation ( PSF, super_PSF, 1000);
+	preInterpolation ( BPk, super_BPk, 1000);
+
+	vector < vector < HR_Pixel> >  HR_pixels;
+	HR_pixels.resize(HR_rows);
+	for (int i = 0; i < HR_pixels.size(); i++) {
+		HR_pixels[i].resize(HR_cols);
+	}
+	for (int i = 0; i < HR_pixels.size(); i++) for (int j = 0; j < HR_pixels[0].size(); j++) {
+		HR_pixels[i][j].i = i;
+		HR_pixels[i][j].j = j;
+	}
+	// initialize influenced pixels (for each pixel in each LR img)
+	vector < vector < vector <LR_Pixel> > > LR_pixels;
+	LR_pixels.resize(imgsC1.size());
+	for (int k = 0; k < imgsC1.size(); k++) {
+		LR_pixels[k].resize(LR_rows);
+		for (int i = 0; i < LR_rows; i++) {
+			LR_pixels[k][i].resize(LR_cols);
+		}
+	}
+	for (int k = 0; k < imgsC1.size(); k++) for (int i = 0; i < LR_rows; i++) for (int j = 0; j < LR_cols; j++) {
+		LR_pixels[k][i][j].i = i;
+		LR_pixels[k][i][j].j = j;
+		LR_pixels[k][i][j].k = k;
+	}
+	formInfluenceRelation (imgsC1, flows, LR_pixels, HR_pixels,2,super_PSF,super_BPk,1000);
+
+	vector<SparseMat> S;
+	formResampleMatrix (LR_pixels, HR_pixels, S);
+	for (int k = 0; k < S.size(); k++) {
+		cout << S[k].nzcount() << endl;
+	}
+
+	Mat HRimg = Mat::zeros(HR_rows, HR_cols, CV_64F);
+	resize(imgsC1[0], HRimg, Size(HR_rows, HR_cols), 0, 0, INTER_CUBIC);
+	imwrite("output/HR_cubic.png" ,HRimg);
+
+	vector <Mat> SX;
+	resampleByMatrix (HRimg, S, SX, LR_rows, LR_cols);
+
+	for (int k = 0; k < SX.size(); k++) {
+		imwrite("output/SX_" + int2str(k) + ".png" ,SX[k]);
+	}
+	
 	return ;
 }
 
@@ -66,7 +154,7 @@ void OptFlow_BP_test () {
 	TermCriteria BPstop;
 	BPstop.type = TermCriteria::COUNT + TermCriteria::EPS;
 	BPstop.maxCount = 10;
-	BPstop.epsilon = 0.01;
+	BPstop.epsilon = 1;
 
 	vector<Mat> imgs;
 
