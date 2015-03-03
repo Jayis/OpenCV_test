@@ -6,5 +6,5 @@ using namespace std;
 using namespace cv;
 
 int main() {
-	
+	OptFlow_ConfBP_test ();
 }
