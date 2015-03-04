@@ -12,7 +12,13 @@
 using namespace std;
 using namespace cv;
 
+void FirstOrderPrimalDual ();
+
 void penalty (vector<Mat>& y, Mat& x_bar, double gamma);
 
 void data_fidelity (Mat& x_k1, Mat& x_k, vector<Mat>& y, double tau);
 
+void form_LHS ();
+
+// doesn't include v
+void form_RHS ();
