@@ -4,6 +4,7 @@
 
 #include <opencv2\core\core.hpp>
 #include <opencv2\imgproc\imgproc.hpp>
+#include <Eigen\Sparse>
 
 #include "DataStructures.h"
 #include "Macros.h"
@@ -37,10 +38,10 @@ double calcConfidence (Vec2f& f, Vec2f& b);
 // FlexISP
 void formResampleMatrix (vector < vector < vector <LR_Pixel> > >& LR_pixels,
 							  vector < vector <HR_Pixel> >&  HR_pixels,
-							  vector <SparseMat>& S);
+							  vector <EigenSpMat>& S);
 
 void resampleByMatrix (Mat& X,
-					   vector <SparseMat>& S, 
+					   vector <EigenSpMat>& S, 
 					   vector <Mat>& SX,
 					   int LR_Rows,
 					   int LR_Cols);

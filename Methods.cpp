@@ -409,7 +409,7 @@ double calcConfidence (Vec2f& f, Vec2f& b)
 // FlexISP
 void formResampleMatrix (vector < vector < vector <LR_Pixel> > >& LR_pixels,
 							  vector < vector <HR_Pixel> >&  HR_pixels,
-							  vector <SparseMat>& S) {
+							  vector <EigenSpMat>& S) {
  	int LR_ImgCount = LR_pixels.size(),
 		LR_Rows = LR_pixels[0].size(),
 		LR_Cols = LR_pixels[0][0].size(),
@@ -422,10 +422,14 @@ void formResampleMatrix (vector < vector < vector <LR_Pixel> > >& LR_pixels,
 
 	int cur_Row, sourcePos2ColIdx, tmp_idx[2];
 
-	double gg;
+	vector<T> tripletList;
+	tripletList.reserve(6553600);
 
 	for (int k = 0; k < S.size(); k++) {
-		S[k].create(2, size, CV_64F);
+		tripletList.reserve(6553600);
+		
+		S[k] = EigenSpMat(size[0], size[1]);
+		S[k].setZero();
 
 		for (int ii = 0; ii < LR_Rows; ii++) for (int jj = 0; jj < LR_Cols; jj++) {
 			cur_Row = ii * LR_Cols + jj;
@@ -436,19 +440,18 @@ void formResampleMatrix (vector < vector < vector <LR_Pixel> > >& LR_pixels,
 					LR_pixels[k][ii][jj].perception_pixels[p].pixel -> j;
 
 				tmp_idx[1] = sourcePos2ColIdx;
-				
-				gg = LR_pixels[k][ii][jj].perception_pixels[p].hPSF;
 
-				S[k].ref<double>(tmp_idx) = LR_pixels[k][ii][jj].perception_pixels[p].hPSF;
+				tripletList.push_back(T(cur_Row, sourcePos2ColIdx, LR_pixels[k][ii][jj].perception_pixels[p].hPSF));				
 			}
 			
 		}
-		cout << "yaya" << endl;
+		S[k].setFromTriplets(tripletList.begin(), tripletList.end());
+		tripletList.clear();
 	}
 }
 
 void resampleByMatrix (Mat& X,
-					   vector <SparseMat>& S, 
+					   vector <EigenSpMat>& S, 
 					   vector <Mat>& SX,
 					   int LR_Rows,
 					   int LR_Cols) {
@@ -462,20 +465,16 @@ void resampleByMatrix (Mat& X,
 	for (int k = 0; k < LR_ImgCount; k++) {
 		SX[k] = Mat::zeros(LR_Rows, LR_Cols, CV_64F);
 
-		SparseMatConstIterator_<double>
-			it = S[k].begin<double>(),
-			it_end = S[k].end<double>();
+		for (int tk=0; tk < S[k].outerSize(); ++tk)
+			for (EigenSpMat::InnerIterator it(S[k],tk); it; ++it)
+			{
+				LR_idx[0] = it.row() / LR_Cols;
+				LR_idx[1] = it.row() % LR_Cols;
+				
+				HR_idx[0] = it.col() / HR_Cols;
+				HR_idx[1] = it.col() % HR_Cols;
 
-		for(; it != it_end; ++it) {
-			const SparseMat::Node* n = it.node();
-
-			LR_idx[0] = n->idx[0] / LR_Cols;
-			LR_idx[1] = n->idx[0] % LR_Cols;
-
-			HR_idx[0] = n->idx[1] / HR_Cols;
-			HR_idx[1] = n->idx[1] % HR_Cols;
-			
-			SX[k].at<double>(LR_idx[0], LR_idx[1]) += it.value<double>() * X.at<double>(HR_idx[0], HR_idx[1]);
-		}
+				SX[k].at<double>(LR_idx[0], LR_idx[1]) += it.value() * X.at<double>(HR_idx[0], HR_idx[1]);
+			}
 	}
 }
