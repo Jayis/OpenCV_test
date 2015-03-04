@@ -7,6 +7,7 @@
 #include <opencv2\photo\photo.hpp>
 #include <opencv2\highgui\highgui.hpp>
 
+#include "Macros.h"
 #include "Tools.h"
 
 using namespace std;
@@ -18,7 +19,7 @@ void penalty (vector<Mat>& y, Mat& x_bar, double gamma);
 
 void data_fidelity (Mat& x_k1, Mat& x_k, vector<Mat>& y, double tau);
 
-void form_LHS ();
+void form_tauATAplusI (double tau, vector<EigenSpMat>& ST, vector<Mat>& conf, vector<EigenSpMat>& S);
 
 // doesn't include v
-void form_RHS ();
+void form_tauATz (double tau, vector<EigenSpMat>& ST, vector<Mat>& conf, vector<Mat>& LRimgs, Mat& out, int HR_rows, int HR_cols) ;

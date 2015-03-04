@@ -83,3 +83,63 @@ void data_fidelity (Mat& x_k1, Mat& x_k, vector<Mat>& y, double tau) {
 
 	imwrite("Flex_output/data.png", v);
 }
+
+void form_tauATAplusI (double tau, vector<EigenSpMat>& ST, vector<Mat>& conf, vector<EigenSpMat>& S, EigenSpMat& out) {
+	// this is calclulating ST * conf * S
+
+	out = EigenSpMat(S[0].cols(), S[0].cols());
+	vector<T> tripletList;
+	tripletList.reserve(6553600);
+
+	int LR_cols = conf[0].cols, LR_rows = conf[0].rows;
+	int LR_idx[2], HR_idx[2];
+	double tmp_val, tmp_conf;
+
+	// multiply confidence on S
+	for (int k = 0; k < ST.size(); k++) {
+
+		for (int tk=0; tk < ST[k].outerSize(); ++tk)
+			for (EigenSpMat::InnerIterator it(ST[k],tk); it; ++it)
+			{
+				LR_idx[0] = it.col() / LR_cols;
+				LR_idx[1] = it.col() % LR_cols;
+
+				tmp_conf = conf[k].at<double>(LR_idx[0], LR_idx[1]);
+
+				if (tmp_conf > 100*EXsmall) {
+					for (int c = 0; c < (S[k].cols()); c++) {
+						tmp_val = S[k].coeffRef (it.col(), c);
+						if (tmp_val > 100*EXsmall) {
+							out.coeffRef(it.row(), c) += tau * it.value() * tmp_conf * tmp_val;
+						}
+					}
+				}
+
+			}
+	}
+
+}
+
+void form_tauATz (double tau, vector<EigenSpMat>& ST, vector<Mat>& conf, vector<Mat>& LRimgs, Mat& out, int HR_rows, int HR_cols) {
+
+	out = Mat::zeros(HR_rows, HR_cols, CV_64F);
+
+	int LR_cols = LRimgs[0].cols, LR_rows = LRimgs[0].rows;
+	int cur_row, colIdx2Pos;
+	int LR_idx[2], HR_idx[2];
+
+	for (int k = 0; k < ST.size(); k++) {
+
+		for (int tk=0; tk < ST[k].outerSize(); ++tk)
+			for (EigenSpMat::InnerIterator it(ST[k],tk); it; ++it)
+			{
+				LR_idx[0] = it.col() / LR_cols;
+				LR_idx[1] = it.col() % LR_cols;
+				
+				HR_idx[0] = it.row() / HR_cols;
+				HR_idx[1] = it.row() % HR_cols;
+
+				out.at<double>(HR_idx[0], HR_idx[1]) += it.value() * conf[k].at<double>(LR_idx[0], LR_idx[1]) * LRimgs[k].at<double>(LR_idx[0], LR_idx[1]);
+			}
+	}
+}

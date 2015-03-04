@@ -89,8 +89,8 @@ void FlexISP_test () {
 	}
 	formInfluenceRelation (imgsC1, flows, LR_pixels, HR_pixels,2,super_PSF,super_BPk,1000);
 
-	vector<EigenSpMat> S;
-	formResampleMatrix (LR_pixels, HR_pixels, S);
+	vector<EigenSpMat> S, ST;
+	formResampleMatrix (LR_pixels, HR_pixels, S, ST);
 	for (int k = 0; k < S.size(); k++) {
 		cout << S[k].nonZeros() << endl;
 	}
