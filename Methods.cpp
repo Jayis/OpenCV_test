@@ -9,6 +9,8 @@ void formInfluenceRelation (vector<Mat>& imgs,
 							Mat& super_PSF,
 							Mat& super_BPk,
 							double interp_scale) {
+	cout << "formInfluenceRelation" << endl;
+
 	int i, j, k;
 	int x, y;
 	

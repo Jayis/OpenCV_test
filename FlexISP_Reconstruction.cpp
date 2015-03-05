@@ -1,7 +1,7 @@
 #include "FlexISP_Reconstruction.h"
 
 void FlexISPmain (vector<Mat>& imgsC1, vector<Mat>& flows, vector<Mat>& confs, Mat& PSF, Mat& BPk, double scale, Mat& output) {
-	double gamma, tau, theta;
+	double gamma = 1, tau = 1, theta = 1;
 
 	int LR_rows = imgsC1[0].rows;
 	int LR_cols = imgsC1[0].cols;
@@ -53,7 +53,7 @@ void FlexISPmain (vector<Mat>& imgsC1, vector<Mat>& flows, vector<Mat>& confs, M
 	Mat tmp_HR;
 	resize(imgsC1[0], tmp_HR, Size(HR_rows, HR_cols), 0, 0, INTER_CUBIC);
 	tmp_HR.convertTo(x_0, CV_64F);
-	imwrite("output/HR_cubic.png" ,x_0);
+	imwrite("output/01initialguess.png" ,x_0);
 
 	// start
 	FirstOrderPrimalDual (gamma, tau, theta, x_0, tauATz, tauATAplusI, output);
@@ -61,9 +61,9 @@ void FlexISPmain (vector<Mat>& imgsC1, vector<Mat>& flows, vector<Mat>& confs, M
 }
 
 void FirstOrderPrimalDual (double gamma, double tau, double theta, Mat& x_0, Mat& tauATz, EigenSpMat& tauATAplusI, Mat& result) {
-	int HR_cols = x_0.cols, HR_rows = x_0.rows;
-	
-	
+	cout << "FirstOrderPrimalDual" << endl;
+
+	int HR_cols = x_0.cols, HR_rows = x_0.rows;	
 
 	// initialize tmp_x[2]
 	bool turn = false; // false = 0, true = 1
@@ -121,6 +121,8 @@ void FirstOrderPrimalDual (double gamma, double tau, double theta, Mat& x_0, Mat
 }
 
 void penalty (vector<Mat>& y, Mat& x_bar_k, double gamma) {
+	cout << "penalty" << endl;
+
 	// 
 	double inv_gamma = 1.0 / gamma;
 
@@ -194,6 +196,8 @@ void penalty (vector<Mat>& y, Mat& x_bar_k, double gamma) {
 
 
 void data_fidelity (Mat& x_k1, Mat& x_k, vector<Mat>& y, double tau, Mat& tauATz, ConjugateGradient<EigenSpMat>& cg) {
+	cout << "data_fidelity" << endl;
+
 	Mat grad_x, grad_y;
 	Sobel( y[0], grad_x, CV_64F, 1, 0, 3, 1, 0, BORDER_DEFAULT );
 	Sobel( y[1], grad_y, CV_64F, 0, 1, 3, 1, 0, BORDER_DEFAULT );
@@ -230,6 +234,7 @@ void data_fidelity (Mat& x_k1, Mat& x_k, vector<Mat>& y, double tau, Mat& tauATz
 }
 
 void extrapolation (Mat& x_bar_k1, Mat& x_k1, Mat& x_k, double theta) {
+	cout << "extrapolation" << endl;
 	x_bar_k1 = (1 + theta) * x_k1 - x_k;
 }
 
@@ -237,6 +242,8 @@ void formResampleMatrix (vector < vector < vector <LR_Pixel> > >& LR_pixels,
 							  vector < vector <HR_Pixel> >&  HR_pixels,
 							  vector <EigenSpMat>& S,
 							  vector <EigenSpMat>& ST) {
+	cout << "formResampleMatrix" << endl;
+
  	int LR_ImgCount = LR_pixels.size(),
 		LR_Rows = LR_pixels[0].size(),
 		LR_Cols = LR_pixels[0][0].size(),
@@ -284,6 +291,8 @@ void formResampleMatrix (vector < vector < vector <LR_Pixel> > >& LR_pixels,
 }
 
 void form_tauATAplusI (double tau, vector<EigenSpMat>& ST, vector<Mat>& conf, vector<EigenSpMat>& S, EigenSpMat& out) {
+	cout << "form_tauATAplusI" << endl;
+
 	// this is calclulating ST * conf * S
 
 	out = EigenSpMat(S[0].cols(), S[0].cols());
@@ -323,6 +332,7 @@ void form_tauATAplusI (double tau, vector<EigenSpMat>& ST, vector<Mat>& conf, ve
 }
 
 void form_tauATz (double tau, vector<EigenSpMat>& ST, vector<Mat>& conf, vector<Mat>& LRimgs, Mat& out, int HR_rows, int HR_cols) {
+	cout << "form_tauATz" << endl;
 
 	out = Mat::zeros(HR_rows, HR_cols, CV_64F);
 
