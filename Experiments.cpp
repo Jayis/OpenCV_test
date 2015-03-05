@@ -18,32 +18,35 @@ void FlexISP_test () {
 
 	penalty(y, in_double, 1);
 	data_fidelity(in_double, in_double, y, 1);
-	*/
+	*/	
 
-	// forming resample matrix
-	
+	String test_set = "bear";	
+	int n = 4;
 
-	String test_set = "bear";
-	
 	vector<Mat> imgsC1;
 	vector<Mat> flows;
+	vector<Mat> flows_back;
+	vector<Mat> confs;
 
-	imgsC1.resize(4);
-	flows.resize(4);
+	imgsC1.resize(n);
+	flows.resize(n);
+	flows_back.resize(n);
+	confs.resize(n);
 
-	for (int k = 0; k < 4; k++) {
+	for (int k = 0; k < n; k++) {
 		imgsC1[k] = imread("input/" + test_set + "256_0" + int2str(k+1) + ".bmp", CV_LOAD_IMAGE_GRAYSCALE);
-	}
-
-	int LR_rows = imgsC1[0].rows;
-	int LR_cols = imgsC1[0].cols;
-	int HR_rows = LR_rows * 2;
-	int HR_cols = LR_cols * 2;
+	}	
 
 	Ptr<DenseOpticalFlow> OptFlow = createOptFlow_DualTVL1();	
-	for (int k = 0; k < 4; k++) {
+	for (int k = 0; k < n; k++) {
 		flows[k] = Mat::zeros(imgsC1[0].rows, imgsC1[0].cols, CV_32FC2);
+		flows_back[k] = Mat::zeros(imgsC1[0].rows, imgsC1[0].cols, CV_32FC2);
 		OptFlow->calc(imgsC1[k], imgsC1[0], flows[k]);
+		OptFlow->calc(imgsC1[0], imgsC1[k], flows_back[k]);
+	}
+
+	for (int k = 0; k < n; k++) {
+		showConfidence (flows[k], flows_back[k], confs[k]);
 	}
 
 	Mat PSF = Mat::zeros(3,3,CV_64F);
@@ -59,55 +62,10 @@ void FlexISP_test () {
 	PSF.at<double>(2,1) = 0.0838;
 	PSF.at<double>(2,2) = 0.0113;
 
-	Mat super_PSF;
-	Mat super_BPk;	
-	preInterpolation ( PSF, super_PSF, 1000);
-	preInterpolation ( BPk, super_BPk, 1000);
+	Mat HRimg;
+	FlexISPmain (imgsC1, flows, confs, PSF, BPk, 2, HRimg);
+	imwrite("output/FlexISP_HR.png", HRimg);
 
-	vector < vector < HR_Pixel> >  HR_pixels;
-	HR_pixels.resize(HR_rows);
-	for (int i = 0; i < HR_pixels.size(); i++) {
-		HR_pixels[i].resize(HR_cols);
-	}
-	for (int i = 0; i < HR_pixels.size(); i++) for (int j = 0; j < HR_pixels[0].size(); j++) {
-		HR_pixels[i][j].i = i;
-		HR_pixels[i][j].j = j;
-	}
-	// initialize influenced pixels (for each pixel in each LR img)
-	vector < vector < vector <LR_Pixel> > > LR_pixels;
-	LR_pixels.resize(imgsC1.size());
-	for (int k = 0; k < imgsC1.size(); k++) {
-		LR_pixels[k].resize(LR_rows);
-		for (int i = 0; i < LR_rows; i++) {
-			LR_pixels[k][i].resize(LR_cols);
-		}
-	}
-	for (int k = 0; k < imgsC1.size(); k++) for (int i = 0; i < LR_rows; i++) for (int j = 0; j < LR_cols; j++) {
-		LR_pixels[k][i][j].i = i;
-		LR_pixels[k][i][j].j = j;
-		LR_pixels[k][i][j].k = k;
-	}
-	formInfluenceRelation (imgsC1, flows, LR_pixels, HR_pixels,2,super_PSF,super_BPk,1000);
-
-	vector<EigenSpMat> S, ST;
-	formResampleMatrix (LR_pixels, HR_pixels, S, ST);
-	for (int k = 0; k < S.size(); k++) {
-		cout << S[k].nonZeros() << endl;
-	}
-
-	Mat HRimg = Mat::zeros(HR_rows, HR_cols, CV_64F);
-	Mat tmp_HR;
-	resize(imgsC1[0], tmp_HR, Size(HR_rows, HR_cols), 0, 0, INTER_CUBIC);
-	tmp_HR.convertTo(HRimg, CV_64F);
-	imwrite("output/HR_cubic.png" ,HRimg);
-
-	vector <Mat> SX;
-	resampleByMatrix (HRimg, S, SX, LR_rows, LR_cols);
-
-	for (int k = 0; k < SX.size(); k++) {
-		imwrite("output/SX_" + int2str(k) + ".png" ,SX[k]);
-	}
-	
 	return ;
 }
 

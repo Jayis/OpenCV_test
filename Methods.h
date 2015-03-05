@@ -36,11 +36,6 @@ double ExpNegSQR (float x);
 
 double calcConfidence (Vec2f& f, Vec2f& b);
 // FlexISP
-void formResampleMatrix (vector < vector < vector <LR_Pixel> > >& LR_pixels,
-							  vector < vector <HR_Pixel> >&  HR_pixels,
-							  vector <EigenSpMat>& S,
-							  vector <EigenSpMat>& ST);
-
 void resampleByMatrix (Mat& X,
 					   vector <EigenSpMat>& S, 
 					   vector <Mat>& SX,

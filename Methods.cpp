@@ -407,56 +407,6 @@ double calcConfidence (Vec2f& f, Vec2f& b)
 	return ExpNegSQR(diff_x, diff_y);
 }
 // FlexISP
-void formResampleMatrix (vector < vector < vector <LR_Pixel> > >& LR_pixels,
-							  vector < vector <HR_Pixel> >&  HR_pixels,
-							  vector <EigenSpMat>& S,
-							  vector <EigenSpMat>& ST) {
- 	int LR_ImgCount = LR_pixels.size(),
-		LR_Rows = LR_pixels[0].size(),
-		LR_Cols = LR_pixels[0][0].size(),
-		HR_Rows = HR_pixels.size(),
-		HR_Cols = HR_pixels[0].size();
-	
-	S.resize(LR_ImgCount);
-	ST.resize(LR_ImgCount);
-
-	int size[2];
-	size[0] = LR_Rows*LR_Cols, size[1] = HR_Rows*HR_Cols;
-
-	int cur_Row, sourcePos2ColIdx, tmp_idx[2];
-
-	vector<T> tripletList, tripletListT;	
-
-	for (int k = 0; k < S.size(); k++) {
-		tripletList.reserve(6553600);
-		tripletListT.reserve(6553600);
-		
-		S[k] = EigenSpMat(size[0], size[1]);
-		ST[k] = EigenSpMat(size[1], size[0]);
-
-		for (int ii = 0; ii < LR_Rows; ii++) for (int jj = 0; jj < LR_Cols; jj++) {
-			cur_Row = ii * LR_Cols + jj;
-			tmp_idx[0] = cur_Row;
-
-			for (int p = 0; p < LR_pixels[k][ii][jj].perception_pixels.size(); p++) {
-				sourcePos2ColIdx = LR_pixels[k][ii][jj].perception_pixels[p].pixel -> i * HR_Cols +
-					LR_pixels[k][ii][jj].perception_pixels[p].pixel -> j;
-
-				tmp_idx[1] = sourcePos2ColIdx;
-
-				tripletList.push_back(T(cur_Row, sourcePos2ColIdx, LR_pixels[k][ii][jj].perception_pixels[p].hPSF));	
-				tripletListT.push_back(T(sourcePos2ColIdx, cur_Row, LR_pixels[k][ii][jj].perception_pixels[p].hPSF));	
-			}
-			
-		}
-		S[k].setFromTriplets(tripletList.begin(), tripletList.end());
-		ST[k].setFromTriplets(tripletListT.begin(), tripletListT.end());
-
-		tripletList.clear();
-		tripletListT.clear();
-	}
-}
-
 void resampleByMatrix (Mat& X,
 					   vector <EigenSpMat>& S, 
 					   vector <Mat>& SX,

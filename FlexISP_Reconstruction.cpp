@@ -1,10 +1,79 @@
 #include "FlexISP_Reconstruction.h"
 
-void FirstOrderPrimalDual (double gamma, double tau, double theta, Mat& x_0) {
+void FlexISPmain (vector<Mat>& imgsC1, vector<Mat>& flows, vector<Mat>& confs, Mat& PSF, Mat& BPk, double scale, Mat& output) {
+	double gamma, tau, theta;
+
+	int LR_rows = imgsC1[0].rows;
+	int LR_cols = imgsC1[0].cols;
+	int HR_rows = LR_rows * scale;
+	int HR_cols = LR_cols * scale;
+
+	Mat super_PSF;
+	Mat super_BPk;	
+	preInterpolation ( PSF, super_PSF, 1000);
+	preInterpolation ( BPk, super_BPk, 1000);
+
+	// initialize HR pixel (for relation use)
+	vector < vector < HR_Pixel> >  HR_pixels;
+	HR_pixels.resize(HR_rows);
+	for (int i = 0; i < HR_pixels.size(); i++) {
+		HR_pixels[i].resize(HR_cols);
+	}
+	for (int i = 0; i < HR_pixels.size(); i++) for (int j = 0; j < HR_pixels[0].size(); j++) {
+		HR_pixels[i][j].i = i;
+		HR_pixels[i][j].j = j;
+	}
+	// initialize influenced pixels (for each pixel in each LR img)
+	vector < vector < vector <LR_Pixel> > > LR_pixels;
+	LR_pixels.resize(imgsC1.size());
+	for (int k = 0; k < imgsC1.size(); k++) {
+		LR_pixels[k].resize(LR_rows);
+		for (int i = 0; i < LR_rows; i++) {
+			LR_pixels[k][i].resize(LR_cols);
+		}
+	}
+	for (int k = 0; k < imgsC1.size(); k++) for (int i = 0; i < LR_rows; i++) for (int j = 0; j < LR_cols; j++) {
+		LR_pixels[k][i][j].i = i;
+		LR_pixels[k][i][j].j = j;
+		LR_pixels[k][i][j].k = k;
+	}
+	formInfluenceRelation (imgsC1, flows, LR_pixels, HR_pixels, scale, super_PSF, super_BPk,1000);
+
+	// use relation to form resample matrix
+	// include scale, blur, 
+	vector<EigenSpMat> S, ST;
+	formResampleMatrix (LR_pixels, HR_pixels, S, ST);
+
+	// form matrix for linear system in data fidelity
+	Mat tauATz;
+	EigenSpMat tauATAplusI;
+	form_tauATz (tau, ST, confs, imgsC1, tauATz, HR_rows, HR_cols);
+	form_tauATAplusI (tau, ST, confs, S, tauATAplusI);
+	Mat x_0 = Mat::zeros(HR_rows, HR_cols, CV_64F);
+	Mat tmp_HR;
+	resize(imgsC1[0], tmp_HR, Size(HR_rows, HR_cols), 0, 0, INTER_CUBIC);
+	tmp_HR.convertTo(x_0, CV_64F);
+	imwrite("output/HR_cubic.png" ,x_0);
+
+	// start
+	FirstOrderPrimalDual (gamma, tau, theta, x_0, tauATz, tauATAplusI, output);
+
+}
+
+void FirstOrderPrimalDual (double gamma, double tau, double theta, Mat& x_0, Mat& tauATz, EigenSpMat& tauATAplusI, Mat& result) {
 	int HR_cols = x_0.cols, HR_rows = x_0.rows;
 	
-	// initialize x_bar_ 0
-	Mat x_bar_0 = Mat::zeros(HR_rows, HR_cols, CV_64F);
+	
+
+	// initialize tmp_x[2]
+	bool turn = false; // false = 0, true = 1
+	Mat tmp_x[2];
+	tmp_x[0] = Mat::zeros(HR_rows, HR_cols, CV_64F);
+	tmp_x[1] = Mat::zeros(HR_rows, HR_cols, CV_64F);
+
+	// initialize x_bar_0
+	Mat x_bar = Mat::zeros(HR_rows, HR_cols, CV_64F);
+	x_0.copyTo(x_bar);
 
 	// initialize y
 	vector<Mat> y;
@@ -13,6 +82,42 @@ void FirstOrderPrimalDual (double gamma, double tau, double theta, Mat& x_0) {
 		y[i] = Mat::zeros(HR_rows, HR_cols, CV_64F);
 	}
 
+	// pre- calculate
+	ConjugateGradient<EigenSpMat> cg;
+	cg.solve(tauATAplusI);
+
+	// start
+	int cur, next;
+	double max_diff = 3e8, cur_diff;
+
+	while ( max_diff > 1 ) {
+		max_diff = 0;
+
+		if (turn) {
+			cur = 1;
+			next = 0;
+		}
+		else {
+			cur = 0; 
+			next = 1;
+		}
+
+		Mat& x_k = tmp_x[cur];
+		Mat& x_k1 = tmp_x[next];
+
+		penalty (y, x_bar, gamma);
+		data_fidelity (x_k1, x_k, y, tau, tauATz, cg);
+		extrapolation (x_bar, x_k1, x_k, theta);
+
+		// 
+		for (int i = 0; i < x_k.rows; i++) for (int j = 0; j < x_k.cols; j++) {
+			cur_diff = abs(x_k.at<double>(i,j) - x_k1.at<double>(i,j));
+			if (cur_diff > max_diff) max_diff = cur_diff;
+		}
+	}
+
+	result = Mat::zeros(HR_rows, HR_cols, CV_64F);
+	tmp_x[next].copyTo(result);
 }
 
 void penalty (vector<Mat>& y, Mat& x_bar_k, double gamma) {
@@ -126,6 +231,56 @@ void data_fidelity (Mat& x_k1, Mat& x_k, vector<Mat>& y, double tau, Mat& tauATz
 
 void extrapolation (Mat& x_bar_k1, Mat& x_k1, Mat& x_k, double theta) {
 	x_bar_k1 = (1 + theta) * x_k1 - x_k;
+}
+
+void formResampleMatrix (vector < vector < vector <LR_Pixel> > >& LR_pixels,
+							  vector < vector <HR_Pixel> >&  HR_pixels,
+							  vector <EigenSpMat>& S,
+							  vector <EigenSpMat>& ST) {
+ 	int LR_ImgCount = LR_pixels.size(),
+		LR_Rows = LR_pixels[0].size(),
+		LR_Cols = LR_pixels[0][0].size(),
+		HR_Rows = HR_pixels.size(),
+		HR_Cols = HR_pixels[0].size();
+	
+	S.resize(LR_ImgCount);
+	ST.resize(LR_ImgCount);
+
+	int size[2];
+	size[0] = LR_Rows*LR_Cols, size[1] = HR_Rows*HR_Cols;
+
+	int cur_Row, sourcePos2ColIdx, tmp_idx[2];
+
+	vector<T> tripletList, tripletListT;	
+
+	for (int k = 0; k < S.size(); k++) {
+		tripletList.reserve(6553600);
+		tripletListT.reserve(6553600);
+		
+		S[k] = EigenSpMat(size[0], size[1]);
+		ST[k] = EigenSpMat(size[1], size[0]);
+
+		for (int ii = 0; ii < LR_Rows; ii++) for (int jj = 0; jj < LR_Cols; jj++) {
+			cur_Row = ii * LR_Cols + jj;
+			tmp_idx[0] = cur_Row;
+
+			for (int p = 0; p < LR_pixels[k][ii][jj].perception_pixels.size(); p++) {
+				sourcePos2ColIdx = LR_pixels[k][ii][jj].perception_pixels[p].pixel -> i * HR_Cols +
+					LR_pixels[k][ii][jj].perception_pixels[p].pixel -> j;
+
+				tmp_idx[1] = sourcePos2ColIdx;
+
+				tripletList.push_back(T(cur_Row, sourcePos2ColIdx, LR_pixels[k][ii][jj].perception_pixels[p].hPSF));	
+				tripletListT.push_back(T(sourcePos2ColIdx, cur_Row, LR_pixels[k][ii][jj].perception_pixels[p].hPSF));	
+			}
+			
+		}
+		S[k].setFromTriplets(tripletList.begin(), tripletList.end());
+		ST[k].setFromTriplets(tripletListT.begin(), tripletListT.end());
+
+		tripletList.clear();
+		tripletListT.clear();
+	}
 }
 
 void form_tauATAplusI (double tau, vector<EigenSpMat>& ST, vector<Mat>& conf, vector<EigenSpMat>& S, EigenSpMat& out) {

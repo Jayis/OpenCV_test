@@ -17,15 +17,22 @@ using namespace std;
 using namespace cv;
 using namespace Eigen;
 
-void FirstOrderPrimalDual ();
+void FlexISPmain (vector<Mat>& imgsC1, vector<Mat>& flows, vector<Mat>& confs, Mat& PSF, Mat& BPk, double scale, Mat& output);
+
+void FirstOrderPrimalDual (double gamma, double tau, double theta, Mat& x_0, Mat& tauATz, EigenSpMat& tauATAplusI, Mat& result);
 
 void penalty (vector<Mat>& y, Mat& x_bar, double gamma);
 
-void data_fidelity (Mat& x_k1, Mat& x_k, vector<Mat>& y, double tau);
+void data_fidelity (Mat& x_k1, Mat& x_k, vector<Mat>& y, double tau, Mat& tauATz, ConjugateGradient<EigenSpMat>& cg);
 
 void extrapolation (Mat& x_bar, Mat& x_k1, Mat& x_k, double theta);
 
-void form_tauATAplusI (double tau, vector<EigenSpMat>& ST, vector<Mat>& conf, vector<EigenSpMat>& S);
+void formResampleMatrix (vector < vector < vector <LR_Pixel> > >& LR_pixels,
+							  vector < vector <HR_Pixel> >&  HR_pixels,
+							  vector <EigenSpMat>& S,
+							  vector <EigenSpMat>& ST);
+
+void form_tauATAplusI (double tau, vector<EigenSpMat>& ST, vector<Mat>& conf, vector<EigenSpMat>& S, EigenSpMat& out);
 
 // doesn't include v
-void form_tauATz (double tau, vector<EigenSpMat>& ST, vector<Mat>& conf, vector<Mat>& LRimgs, Mat& out, int HR_rows, int HR_cols) ;
+void form_tauATz (double tau, vector<EigenSpMat>& ST, vector<Mat>& conf, vector<Mat>& LRimgs, Mat& out, int HR_rows, int HR_cols);
