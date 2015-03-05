@@ -485,3 +485,18 @@ void resampleByMatrix (Mat& X,
 			}
 	}
 }
+
+void formSparseI (EigenSpMat& out, int rows, int cols) {
+	out = EigenSpMat(rows, cols);
+
+	int I_length = MIN(rows, cols);
+
+	vector<T> tripletList;
+	tripletList.reserve(I_length);
+
+	for (int i = 0; i < I_length; i++) {
+		tripletList.push_back(T(i, i, 1));
+	}
+
+	out.setFromTriplets(tripletList.begin(), tripletList.end());
+}

@@ -1,6 +1,21 @@
 #include "FlexISP_Reconstruction.h"
 
-void penalty (vector<Mat>& y, Mat& x_bar, double gamma) {
+void FirstOrderPrimalDual (double gamma, double tau, double theta, Mat& x_0) {
+	int HR_cols = x_0.cols, HR_rows = x_0.rows;
+	
+	// initialize x_bar_ 0
+	Mat x_bar_0 = Mat::zeros(HR_rows, HR_cols, CV_64F);
+
+	// initialize y
+	vector<Mat> y;
+	y.resize(3);
+	for (int i = 0; i < 3; i++) {
+		y[i] = Mat::zeros(HR_rows, HR_cols, CV_64F);
+	}
+
+}
+
+void penalty (vector<Mat>& y, Mat& x_bar_k, double gamma) {
 	// 
 	double inv_gamma = 1.0 / gamma;
 
@@ -8,16 +23,16 @@ void penalty (vector<Mat>& y, Mat& x_bar, double gamma) {
 	vector<Mat> v;
 	v.resize(3);
 	for (int k = 0; k < 3; k++) {
-		v[k] = Mat::zeros(x_bar.rows, x_bar.cols, CV_64F);
+		v[k] = Mat::zeros(x_bar_k.rows, x_bar_k.cols, CV_64F);
 	}
 	
 	Mat grad_x, grad_y;
-	Sobel( x_bar, grad_x, CV_64F, 1, 0, 3, 1, 0, BORDER_DEFAULT );
-	Sobel( x_bar, grad_y, CV_64F, 0, 1, 3, 1, 0, BORDER_DEFAULT );
+	Sobel( x_bar_k, grad_x, CV_64F, 1, 0, 3, 1, 0, BORDER_DEFAULT );
+	Sobel( x_bar_k, grad_y, CV_64F, 0, 1, 3, 1, 0, BORDER_DEFAULT );
 
 	v[0] = y[0] + (gamma * grad_x);
 	v[1] = y[1] + (gamma * grad_y);
-	v[2] = y[2] + (gamma * x_bar);
+	v[2] = y[2] + (gamma * x_bar_k);
 
 	for (int k = 0; k < 3; k++) {
 		imwrite ("Flex_output/v_" + int2str(k) + ".png", v[k]);
@@ -29,7 +44,7 @@ void penalty (vector<Mat>& y, Mat& x_bar, double gamma) {
 	vector<Mat> proxF;
 	proxF.resize(3);
 	for (int k = 0; k < 3; k++) {
-		proxF[k] = Mat::zeros(x_bar.rows, x_bar.cols, CV_64F);
+		proxF[k] = Mat::zeros(x_bar_k.rows, x_bar_k.cols, CV_64F);
 	}
 
 	for (int k = 0; k < 2; k++) {
@@ -73,7 +88,7 @@ void penalty (vector<Mat>& y, Mat& x_bar, double gamma) {
 }
 
 
-void data_fidelity (Mat& x_k1, Mat& x_k, vector<Mat>& y, double tau) {
+void data_fidelity (Mat& x_k1, Mat& x_k, vector<Mat>& y, double tau, Mat& tauATz, ConjugateGradient<EigenSpMat>& cg) {
 	Mat grad_x, grad_y;
 	Sobel( y[0], grad_x, CV_64F, 1, 0, 3, 1, 0, BORDER_DEFAULT );
 	Sobel( y[1], grad_y, CV_64F, 0, 1, 3, 1, 0, BORDER_DEFAULT );
@@ -82,14 +97,42 @@ void data_fidelity (Mat& x_k1, Mat& x_k, vector<Mat>& y, double tau) {
 	v = x_k - (tau * (- grad_x - grad_y + y[2]));	// whether this grad_x,grad_y should be + or -, need to be try
 
 	imwrite("Flex_output/data.png", v);
+
+	Mat b_Mat = Mat::zeros(x_k.rows, x_k.cols, CV_64F);
+	b_Mat = tauATz + v;
+
+	// solve linear system
+	// form b
+	int HR_vecLength = x_k.rows * x_k.cols;
+	int cur_idx = 0;
+	VectorXd b(HR_vecLength), x(HR_vecLength);
+	for (int i = 0; i < x_k.rows; i++) for (int j = 0; j < x_k.cols; j++) {
+		b(cur_idx) = b_Mat.at<double> (i, j);
+		cur_idx++;
+	}
+	// A = tauATAplusI
+	// cg.compute(A) should be done outside this function
+	// so let's solve	
+	x = cg.solve(b);
+
+	// turn x to Mat x_k1
+	x_k1 = Mat::zeros(x_k.rows, x_k.cols, CV_64F);
+	cur_idx = 0;
+	for (int i = 0; i < x_k1.rows; i++) for (int j = 0; j < x_k1.cols; j++) {
+		x_k1.at<double> (i, j) = x(cur_idx);
+		cur_idx++;
+	}
+}
+
+void extrapolation (Mat& x_bar_k1, Mat& x_k1, Mat& x_k, double theta) {
+	x_bar_k1 = (1 + theta) * x_k1 - x_k;
 }
 
 void form_tauATAplusI (double tau, vector<EigenSpMat>& ST, vector<Mat>& conf, vector<EigenSpMat>& S, EigenSpMat& out) {
 	// this is calclulating ST * conf * S
 
 	out = EigenSpMat(S[0].cols(), S[0].cols());
-	vector<T> tripletList;
-	tripletList.reserve(6553600);
+	EigenSpMat tmp(S[0].cols(), S[0].cols());
 
 	int LR_cols = conf[0].cols, LR_rows = conf[0].rows;
 	int LR_idx[2], HR_idx[2];
@@ -117,6 +160,10 @@ void form_tauATAplusI (double tau, vector<EigenSpMat>& ST, vector<Mat>& conf, ve
 
 			}
 	}
+	EigenSpMat I;
+	formSparseI(I, S[0].cols(), S[0].cols());
+
+	out = tmp + I;
 
 }
 

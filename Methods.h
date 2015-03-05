@@ -46,3 +46,5 @@ void resampleByMatrix (Mat& X,
 					   vector <Mat>& SX,
 					   int LR_Rows,
 					   int LR_Cols);
+
+void formSparseI (EigenSpMat& out, int rows, int cols);
