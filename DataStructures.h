@@ -46,3 +46,29 @@ public:
 	double hPSF;
 	HR_Pixel* pixel;
 };
+
+//-----SparseMat
+class Element {
+public:
+	Element(int ii, int jj, double value);
+
+	int i, j;
+	double val;
+};
+
+class MySparseMat {
+public:
+	MySparseMat();
+	MySparseMat(int r, int c, int t);
+
+	void insertElement(Element& e);
+	void setVal(int i, int j, double val);
+	double getVal(int i, int j);
+
+	int type; // row_major = 0, col_major = 1
+	int rows, cols;
+	int nzcount;
+
+	vector<vector<Element> > elements;
+};
+

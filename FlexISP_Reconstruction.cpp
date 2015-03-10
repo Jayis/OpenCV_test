@@ -12,6 +12,9 @@ void FlexISPmain (vector<Mat>& imgsC1, vector<Mat>& flows, vector<Mat>& confs, M
 	Mat super_BPk;	
 	preInterpolation ( PSF, super_PSF, 1000);
 	preInterpolation ( BPk, super_BPk, 1000);
+	
+	imwrite("output/superPSF.png", super_PSF);
+	imwrite("output/superBPK.png", super_BPk);
 
 	// initialize HR pixel (for relation use)
 	vector < vector < HR_Pixel> >  HR_pixels;
@@ -41,13 +44,14 @@ void FlexISPmain (vector<Mat>& imgsC1, vector<Mat>& flows, vector<Mat>& confs, M
 
 	// use relation to form resample matrix
 	// include scale, blur, 
-	vector<EigenSpMat> S, ST;
-	formResampleMatrix (LR_pixels, HR_pixels, S, ST);
+	vector<MySparseMat> S, ST;
+	vector<EigenSpMat> ST_eigen;
+	formResampleMatrix (LR_pixels, HR_pixels, S, ST, ST_eigen);
 
 	// form matrix for linear system in data fidelity
 	Mat tauATz;
 	EigenSpMat tauATAplusI;
-	form_tauATz (tau, ST, confs, imgsC1, tauATz, HR_rows, HR_cols);
+	form_tauATz_eigen (tau, ST_eigen, confs, imgsC1, tauATz, HR_rows, HR_cols);
 	form_tauATAplusI (tau, ST, confs, S, tauATAplusI);
 	Mat x_0 = Mat::zeros(HR_rows, HR_cols, CV_64F);
 	Mat tmp_HR;
@@ -240,8 +244,9 @@ void extrapolation (Mat& x_bar_k1, Mat& x_k1, Mat& x_k, double theta) {
 
 void formResampleMatrix (vector < vector < vector <LR_Pixel> > >& LR_pixels,
 							  vector < vector <HR_Pixel> >&  HR_pixels,
-							  vector <EigenSpMat>& S,
-							  vector <EigenSpMat>& ST) {
+							  vector <MySparseMat>& S,
+							  vector <MySparseMat>& ST,
+							  vector <EigenSpMat>& ST_eigen) {
 	cout << "formResampleMatrix" << endl;
 
  	int LR_ImgCount = LR_pixels.size(),
@@ -252,20 +257,22 @@ void formResampleMatrix (vector < vector < vector <LR_Pixel> > >& LR_pixels,
 	
 	S.resize(LR_ImgCount);
 	ST.resize(LR_ImgCount);
+	ST_eigen.resize(LR_ImgCount);
 
 	int size[2];
 	size[0] = LR_Rows*LR_Cols, size[1] = HR_Rows*HR_Cols;
 
 	int cur_Row, sourcePos2ColIdx, tmp_idx[2];
 
-	vector<T> tripletList, tripletListT;	
+	vector<T> tripletList, tripletListT;
 
 	for (int k = 0; k < S.size(); k++) {
-		tripletList.reserve(6553600);
+		//tripletList.reserve(6553600);
 		tripletListT.reserve(6553600);
-		
-		S[k] = EigenSpMat(size[0], size[1]);
-		ST[k] = EigenSpMat(size[1], size[0]);
+
+		S[k] = MySparseMat(size[0], size[1], 1);
+		ST[k] = MySparseMat(size[1], size[0], 0);
+		ST_eigen[k] = EigenSpMat(size[1], size[0]);
 
 		for (int ii = 0; ii < LR_Rows; ii++) for (int jj = 0; jj < LR_Cols; jj++) {
 			cur_Row = ii * LR_Cols + jj;
@@ -277,36 +284,57 @@ void formResampleMatrix (vector < vector < vector <LR_Pixel> > >& LR_pixels,
 
 				tmp_idx[1] = sourcePos2ColIdx;
 
-				tripletList.push_back(T(cur_Row, sourcePos2ColIdx, LR_pixels[k][ii][jj].perception_pixels[p].hPSF));	
+				S[k].setVal( cur_Row, sourcePos2ColIdx, LR_pixels[k][ii][jj].perception_pixels[p].hPSF );
+				ST[k].setVal( cur_Row, sourcePos2ColIdx, LR_pixels[k][ii][jj].perception_pixels[p].hPSF );
+
+				//tripletList.push_back(T(cur_Row, sourcePos2ColIdx, LR_pixels[k][ii][jj].perception_pixels[p].hPSF));	
 				tripletListT.push_back(T(sourcePos2ColIdx, cur_Row, LR_pixels[k][ii][jj].perception_pixels[p].hPSF));	
 			}
 			
 		}
-		S[k].setFromTriplets(tripletList.begin(), tripletList.end());
-		ST[k].setFromTriplets(tripletListT.begin(), tripletListT.end());
-
-		tripletList.clear();
+		//S[k].setFromTriplets(tripletList.begin(), tripletList.end());
+		ST_eigen[k].setFromTriplets(tripletListT.begin(), tripletListT.end());
+		//tripletList.clear();
 		tripletListT.clear();
 	}
 }
 
-void form_tauATAplusI (double tau, vector<EigenSpMat>& ST, vector<Mat>& conf, vector<EigenSpMat>& S, EigenSpMat& out) {
+void form_tauATAplusI (double tau, vector<MySparseMat>& ST, vector<Mat>& conf, vector<MySparseMat>& S, EigenSpMat& out) {
 	cout << "form_tauATAplusI" << endl;
 
 	// this is calclulating ST * conf * S
 
-	out = EigenSpMat(S[0].cols(), S[0].cols());
-	EigenSpMat tmp(S[0].cols(), S[0].cols());
+	out = EigenSpMat(S[0].cols, S[0].cols);
+
+	vector<EigenSpMat> tmp, tmp2;
+	tmp.resize(ST.size());
+	tmp2.resize(ST.size());
 
 	int LR_cols = conf[0].cols, LR_rows = conf[0].rows;
 	int LR_idx[2], HR_idx[2];
 	double tmp_val, tmp_conf;
 
+	//
+	for (int k = 0; k < ST.size(); k++) {
+		cout << "multiplying " << k << " th\n";
+		multiplyMySpMat(ST[k], S[k], tmp[k]);
+	}
+	tmp2[0] = tmp[0];
+	for (int k = 1; k < ST.size(); k++) {
+		tmp2[k] = tmp2[k-1] + tmp[k];
+	}
+
+	EigenSpMat I;
+	formSparseI(I, S[0].cols, S[0].cols);
+
+	out =tmp2[ST.size() - 1] + I;
+
+	/*
 	// multiply confidence on S
 	for (int k = 0; k < ST.size(); k++) {
 
 		for (int tk=0; tk < ST[k].outerSize(); ++tk)
-			for (EigenSpMat::InnerIterator it(ST[k],tk); it; ++it)
+			for (EigenSpColMat::InnerIterator it(ST[k],tk); it; ++it)
 			{
 				LR_idx[0] = it.col() / LR_cols;
 				LR_idx[1] = it.col() % LR_cols;
@@ -317,21 +345,21 @@ void form_tauATAplusI (double tau, vector<EigenSpMat>& ST, vector<Mat>& conf, ve
 					for (int c = 0; c < (S[k].cols()); c++) {
 						tmp_val = S[k].coeffRef (it.col(), c);
 						if (tmp_val > 100*EXsmall) {
-							out.coeffRef(it.row(), c) += tau * it.value() * tmp_conf * tmp_val;
+							tmp.coeffRef(it.row(), c) += tau * it.value() * tmp_conf * tmp_val;
 						}
 					}
 				}
 
 			}
 	}
-	EigenSpMat I;
+	EigenSpColMat I, tmp2 = tmp;
 	formSparseI(I, S[0].cols(), S[0].cols());
 
-	out = tmp + I;
-
+	out =tmp2 + I;
+	*/
 }
 
-void form_tauATz (double tau, vector<EigenSpMat>& ST, vector<Mat>& conf, vector<Mat>& LRimgs, Mat& out, int HR_rows, int HR_cols) {
+void form_tauATz (double tau, vector<MySparseMat>& ST, vector<Mat>& conf, vector<Mat>& LRimgs, Mat& out, int HR_rows, int HR_cols) {
 	cout << "form_tauATz" << endl;
 
 	out = Mat::zeros(HR_rows, HR_cols, CV_64F);
@@ -340,11 +368,55 @@ void form_tauATz (double tau, vector<EigenSpMat>& ST, vector<Mat>& conf, vector<
 	int cur_row, colIdx2Pos;
 	int LR_idx[2], HR_idx[2];
 
+	int count = 0;
+	double progress;
+
 	for (int k = 0; k < ST.size(); k++) {
 
-		for (int tk=0; tk < ST[k].outerSize(); ++tk)
+		for (int t = 0; t < ST[k].elements.size(); t++) {
+			for (int s = 0; s < ST[k].elements[t].size(); s++) {
+				progress = (double) count / ST[k].nzcount;
+				count ++;
+				cout << "\rtotal progress: " << progress << ",\telement vector: " << t ;
+
+				Element& cur_element = ST[k].elements[t][s];				
+
+				LR_idx[0] = cur_element.j / LR_cols;
+				LR_idx[1] = cur_element.j % LR_cols;
+				
+				HR_idx[0] = cur_element.i / HR_cols;
+				HR_idx[1] = cur_element.i % HR_cols;
+
+				out.at<double>(HR_idx[0], HR_idx[1]) += cur_element.val * conf[k].at<double>(LR_idx[0], LR_idx[1]) * LRimgs[k].at<double>(LR_idx[0], LR_idx[1]);
+			}
+		}
+
+		cout << endl;
+	}
+}
+
+void form_tauATz_eigen (double tau, vector<EigenSpMat>& ST, vector<Mat>& conf, vector<Mat>& LRimgs, Mat& out, int HR_rows, int HR_cols) {
+	cout << "form_tauATz" << endl;
+
+	out = Mat::zeros(HR_rows, HR_cols, CV_64F);
+
+	int LR_cols = LRimgs[0].cols, LR_rows = LRimgs[0].rows;
+	int cur_row, colIdx2Pos;
+	int LR_idx[2], HR_idx[2];
+
+	int count = 0;
+	double progress;
+
+	for (int k = 0; k < ST.size(); k++) {
+		cout << "ST[" << k << "]\n";
+		for (int tk=0; tk < ST[k].outerSize(); ++tk) {		
+
 			for (EigenSpMat::InnerIterator it(ST[k],tk); it; ++it)
 			{
+				progress = (double)count / ST[k].nonZeros();
+				count ++;
+				//cout << "\rprogress: " << progress ;
+
 				LR_idx[0] = it.col() / LR_cols;
 				LR_idx[1] = it.col() % LR_cols;
 				
@@ -352,6 +424,8 @@ void form_tauATz (double tau, vector<EigenSpMat>& ST, vector<Mat>& conf, vector<
 				HR_idx[1] = it.row() % HR_cols;
 
 				out.at<double>(HR_idx[0], HR_idx[1]) += it.value() * conf[k].at<double>(LR_idx[0], LR_idx[1]) * LRimgs[k].at<double>(LR_idx[0], LR_idx[1]);
-			}
+			}			
+		}
+		cout << endl;
 	}
 }

@@ -37,9 +37,13 @@ double ExpNegSQR (float x);
 double calcConfidence (Vec2f& f, Vec2f& b);
 // FlexISP
 void resampleByMatrix (Mat& X,
-					   vector <EigenSpMat>& S, 
+					   vector <MySparseMat>& S, 
 					   vector <Mat>& SX,
 					   int LR_Rows,
 					   int LR_Cols);
 
 void formSparseI (EigenSpMat& out, int rows, int cols);
+
+void multiplyMySpMat (MySparseMat& A, MySparseMat& B, EigenSpMat& out);
+
+double MySpMat_dot (vector<Element>& a, vector<Element>& b);

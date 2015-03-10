@@ -33,20 +33,21 @@ void FlexISP_test () {
 	flows_back.resize(n);
 	confs.resize(n);
 
+	cout << "read in images\n";
 	for (int k = 0; k < n; k++) {
 		imgsC1[k] = imread("input/" + test_set + "256_0" + int2str(k+1) + ".bmp", CV_LOAD_IMAGE_GRAYSCALE);
 	}	
 
+	cout << "calculating flows & confidences\n";
 	Ptr<DenseOpticalFlow> OptFlow = createOptFlow_DualTVL1();	
 	for (int k = 0; k < n; k++) {
 		flows[k] = Mat::zeros(imgsC1[0].rows, imgsC1[0].cols, CV_32FC2);
 		flows_back[k] = Mat::zeros(imgsC1[0].rows, imgsC1[0].cols, CV_32FC2);
 		OptFlow->calc(imgsC1[k], imgsC1[0], flows[k]);
 		OptFlow->calc(imgsC1[0], imgsC1[k], flows_back[k]);
-	}
-
-	for (int k = 0; k < n; k++) {
 		showConfidence (flows[k], flows_back[k], confs[k]);
+
+		imwrite("output/conf" + int2str(k) + "to0.png", confs[k]);
 	}
 
 	Mat PSF = Mat::zeros(3,3,CV_64F);

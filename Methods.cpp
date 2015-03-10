@@ -409,8 +409,9 @@ double calcConfidence (Vec2f& f, Vec2f& b)
 	return ExpNegSQR(diff_x, diff_y);
 }
 // FlexISP
+/*
 void resampleByMatrix (Mat& X,
-					   vector <EigenSpMat>& S, 
+					   vector <EigenSpRowMat>& S, 
 					   vector <Mat>& SX,
 					   int LR_Rows,
 					   int LR_Cols) {
@@ -425,7 +426,7 @@ void resampleByMatrix (Mat& X,
 		SX[k] = Mat::zeros(LR_Rows, LR_Cols, CV_64F);
 
 		for (int tk=0; tk < S[k].outerSize(); ++tk)
-			for (EigenSpMat::InnerIterator it(S[k],tk); it; ++it)
+			for (EigenSpRowMat::InnerIterator it(S[k],tk); it; ++it)
 			{
 				LR_idx[0] = it.row() / LR_Cols;
 				LR_idx[1] = it.row() % LR_Cols;
@@ -437,7 +438,7 @@ void resampleByMatrix (Mat& X,
 			}
 	}
 }
-
+*/
 void formSparseI (EigenSpMat& out, int rows, int cols) {
 	out = EigenSpMat(rows, cols);
 
@@ -451,4 +452,48 @@ void formSparseI (EigenSpMat& out, int rows, int cols) {
 	}
 
 	out.setFromTriplets(tripletList.begin(), tripletList.end());
+}
+
+void multiplyMySpMat (MySparseMat& A, MySparseMat& B, EigenSpMat& out) {
+	cout << "multiplyMySpMat...\n";
+
+	if (A.type != 0 || B.type != 1) {
+		cout << "wrong type of A or B\n";
+
+		return ;
+	}
+
+	out = EigenSpMat(A.rows, B.cols);
+	vector<T> tripletList;
+	tripletList.reserve(6553600);
+
+	cout << A.elements.size() << endl;
+	cout << B.elements.size() << endl;
+
+	for (int t = 0; t < A.elements.size(); t++) {
+		cout << "\rmultiplying: " << t << "th row";
+		for (int s = 0; s < B.elements.size(); s++) {
+			if (t == 56) {
+				cout << "\n" << s << " th col";
+			}
+			//cout << "\rmultiplying " << t << "th row & " << s << " th col";
+			tripletList.push_back(T(t, s, MySpMat_dot(A.elements[t], B.elements[s])));
+		}
+	}
+
+	out.setFromTriplets(tripletList.begin(), tripletList.end());
+}
+
+double MySpMat_dot (vector<Element>& a, vector<Element>& b) {
+	double out = 0;
+
+	for (int t = 0; t < a.size(); t++) {
+		for (int s = 0; s < b.size(); s++) {
+			if (a[t].j == b[s].i) {
+				out += a[t].val * b[s].val;
+			}
+		}
+	}
+
+	return out;
 }
