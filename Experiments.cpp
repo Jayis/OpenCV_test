@@ -2,7 +2,7 @@
 
 void LinearConstruct_test () {
 	String test_set = "bear";	
-	int n = 3;
+	int n = 1;
 
 	vector<Mat> imgsC1;
 	vector<Mat> flows;
@@ -46,11 +46,12 @@ void LinearConstruct_test () {
 
 	Mat HRimg;
 
-	LinearConstructor linearConstructor( imgsC1, flows, 2, PSF);
+	LinearConstructorTmp linearConstructor( imgsC1, flows, 2, PSF);
 	linearConstructor.addRegularization_grad2norm();
 	linearConstructor.solve_byCG();
+	//linearConstructor.solve_bySparseQR();
 	linearConstructor.output(HRimg);
-	imwrite("output/LinearConstruct_HR" + int2str(n) + ".png", HRimg);
+	imwrite("output/LinearConstruct_HR" + int2str(n) + "_CGTMP.png", HRimg);
 
 	return;
 }
