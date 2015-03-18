@@ -1,5 +1,60 @@
 #include "Experiments.h"
 
+void LinearConstruct_test () {
+	String test_set = "bear";	
+	int n = 3;
+
+	vector<Mat> imgsC1;
+	vector<Mat> flows;
+	vector<Mat> flows_back;
+	vector<Mat> confs;
+
+	imgsC1.resize(n);
+	flows.resize(n);
+	flows_back.resize(n);
+	confs.resize(n);
+
+	cout << "read in images\n";
+	for (int k = 0; k < n; k++) {
+		imgsC1[k] = imread("input/" + test_set + "256_0" + int2str(k+1) + ".bmp", CV_LOAD_IMAGE_GRAYSCALE);
+	}	
+
+	cout << "calculating flows & confidences\n";
+	Ptr<DenseOpticalFlow> OptFlow = createOptFlow_DualTVL1();	
+	for (int k = 0; k < n; k++) {
+		flows[k] = Mat::zeros(imgsC1[0].rows, imgsC1[0].cols, CV_32FC2);
+		flows_back[k] = Mat::zeros(imgsC1[0].rows, imgsC1[0].cols, CV_32FC2);
+		OptFlow->calc(imgsC1[k], imgsC1[0], flows[k]);
+		OptFlow->calc(imgsC1[0], imgsC1[k], flows_back[k]);
+		showConfidence (flows[k], flows_back[k], confs[k]);
+
+		imwrite("output/conf" + int2str(k) + "to0.png", confs[k]);
+	}
+
+	Mat PSF = Mat::zeros(3,3,CV_64F);
+	Mat BPk = PSF;
+	
+	PSF.at<double>(0,0) = 0.0113;
+	PSF.at<double>(0,1) = 0.0838;
+	PSF.at<double>(0,2) = 0.0113;
+	PSF.at<double>(1,0) = 0.0838;
+	PSF.at<double>(1,1) = 0.6193;
+	PSF.at<double>(1,2) = 0.0838;
+	PSF.at<double>(2,0) = 0.0113;
+	PSF.at<double>(2,1) = 0.0838;
+	PSF.at<double>(2,2) = 0.0113;
+
+	Mat HRimg;
+
+	LinearConstructor linearConstructor( imgsC1, flows, 2, PSF);
+	linearConstructor.addRegularization_grad2norm();
+	linearConstructor.solve_byCG();
+	linearConstructor.output(HRimg);
+	imwrite("output/LinearConstruct_HR" + int2str(n) + ".png", HRimg);
+
+	return;
+}
+
 void FlexISP_test () {
 	/*
 	Mat in = imread("input/test/CIMG1439.JPG", IMREAD_GRAYSCALE);

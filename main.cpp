@@ -6,7 +6,7 @@ using namespace std;
 using namespace cv;
 
 int main() {
-	FlexISP_test ();
+	LinearConstruct_test ();
 
 	system("pause");
 }

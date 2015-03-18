@@ -27,12 +27,6 @@ void data_fidelity (Mat& x_k1, Mat& x_k, vector<Mat>& y, double tau, Mat& tauATz
 
 void extrapolation (Mat& x_bar, Mat& x_k1, Mat& x_k, double theta);
 
-void formResampleMatrix (vector < vector < vector <LR_Pixel> > >& LR_pixels,
-							  vector < vector <HR_Pixel> >&  HR_pixels,
-							  vector <MySparseMat>& S,
-							  vector <MySparseMat>& ST,
-							  vector <EigenSpMat>& ST_eigen);
-
 void form_tauATAplusI (double tau, vector<MySparseMat>& ST, vector<Mat>& conf, vector<MySparseMat>& S, EigenSpMat& out);
 
 // doesn't include v
