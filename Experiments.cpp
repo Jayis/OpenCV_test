@@ -2,7 +2,7 @@
 
 void LinearConstruct_test () {
 	String test_set = "bear";	
-	int n = 1;
+	int n = 4;
 
 	vector<Mat> imgsC1;
 	vector<Mat> flows;
@@ -28,7 +28,7 @@ void LinearConstruct_test () {
 		OptFlow->calc(imgsC1[0], imgsC1[k], flows_back[k]);
 		showConfidence (flows[k], flows_back[k], confs[k]);
 
-		imwrite("output/conf" + int2str(k) + "to0.png", confs[k]);
+		imwrite("output/conf" + int2str(k) + "to0.png", confs[k]*254);
 	}
 
 	Mat PSF = Mat::zeros(3,3,CV_64F);
@@ -46,12 +46,12 @@ void LinearConstruct_test () {
 
 	Mat HRimg;
 
-	LinearConstructorTmp linearConstructor( imgsC1, flows, 2, PSF);
-	linearConstructor.addRegularization_grad2norm();
+	LinearConstructor linearConstructor( imgsC1, flows, confs, 2, PSF);
+	linearConstructor.addRegularization_grad2norm(0.05);
 	linearConstructor.solve_byCG();
 	//linearConstructor.solve_bySparseQR();
 	linearConstructor.output(HRimg);
-	imwrite("output/LinearConstruct_HR" + int2str(n) + "_CGTMP.png", HRimg);
+	imwrite("output/" + test_set + "_LinearConstructConf03434Grad005_HR" + int2str(n) + "_CG.png", HRimg);
 
 	return;
 }
@@ -121,7 +121,7 @@ void FlexISP_test () {
 
 	Mat HRimg;
 	FlexISPmain (imgsC1, flows, confs, PSF, BPk, 2, HRimg);
-	imwrite("output/FlexISP_HR.png", HRimg);
+	imwrite("output/" + test_set + "FlexISP_HR.png", HRimg);
 
 	return ;
 }

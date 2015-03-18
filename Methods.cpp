@@ -396,7 +396,7 @@ void showConfidence (Mat& flow_forward, Mat& flow_backward, Mat& confidence)
 }
 
 double ExpNegSQR (float x, float y) {
-	float sigma = 1;
+	float sigma = 0.4343; // make one pixel far decay to 0.1
 	return exp(-(SQR(x) + SQR(y)) / sigma);
 }
 

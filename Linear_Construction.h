@@ -14,8 +14,9 @@ class LinearConstructor
 {
 public:
 	LinearConstructor( vector<Mat>& LR_imgs, vector<Mat>& flows, double scale, Mat& PSF);
+	LinearConstructor( vector<Mat>& LR_imgs, vector<Mat>& flows, vector<Mat> confs, double scale, Mat& PSF);
 	
-	void addRegularization_grad2norm();
+	void addRegularization_grad2norm(double gamma);
 
 	void solve_bySparseQR();	// error
 	void solve_byCG();
@@ -23,7 +24,8 @@ public:
 	void output(Mat& HRimg);
 
 private:
-	void addDataFidelityTerm( );
+	void addDataFidelity( );
+	void addDataFidelityWithConf(vector<Mat>& conf );
 
 	vector<T> A_triplets;
 	vector<double> b_vec;
