@@ -13,8 +13,8 @@ void FlexISPmain (vector<Mat>& imgsC1, vector<Mat>& flows, vector<Mat>& confs, M
 	preInterpolation ( PSF, super_PSF, 1000);
 	preInterpolation ( BPk, super_BPk, 1000);
 	
-	imwrite("output/superPSF.png", super_PSF);
-	imwrite("output/superBPK.png", super_BPk);
+	imwrite("output/superPSF.bmp", super_PSF);
+	imwrite("output/superBPK.bmp", super_BPk);
 
 	// initialize HR pixel (for relation use)
 	vector < vector < HR_Pixel> >  HR_pixels;
@@ -57,7 +57,7 @@ void FlexISPmain (vector<Mat>& imgsC1, vector<Mat>& flows, vector<Mat>& confs, M
 	Mat tmp_HR;
 	resize(imgsC1[0], tmp_HR, Size(HR_rows, HR_cols), 0, 0, INTER_CUBIC);
 	tmp_HR.convertTo(x_0, CV_64F);
-	imwrite("output/01initialguess.png" ,x_0);
+	imwrite("output/01initialguess.bmp" ,x_0);
 
 	// start
 	FirstOrderPrimalDual (gamma, tau, theta, x_0, tauATz, tauATAplusI, output);
@@ -146,7 +146,7 @@ void penalty (vector<Mat>& y, Mat& x_bar_k, double gamma) {
 	v[2] = y[2] + (gamma * x_bar_k);
 
 	for (int k = 0; k < 3; k++) {
-		imwrite ("Flex_output/v_" + int2str(k) + ".png", v[k]);
+		imwrite ("Flex_output/v_" + int2str(k) + ".bmp", v[k]);
 	}
 
 	// calculate proximal-inv_gamma-F(v/gamma)
@@ -185,7 +185,7 @@ void penalty (vector<Mat>& y, Mat& x_bar_k, double gamma) {
 	tmp_proxF2_denoise.convertTo(proxF[2], CV_64F);
 
 	for (int k = 0; k < 3; k++) {
-		imwrite ("Flex_output/porxF_" + int2str(k) + ".png", proxF[k]);
+		imwrite ("Flex_output/porxF_" + int2str(k) + ".bmp", proxF[k]);
 	}
 
 	// proximal-gamma-F*(v) = v - gamma * proximal-inv_gamma-F(v/gamma)
@@ -193,7 +193,7 @@ void penalty (vector<Mat>& y, Mat& x_bar_k, double gamma) {
 		y[k] = v[k] - (gamma * proxF[k]);
 	}
 	for (int k = 0; k < 3; k++) {
-		imwrite ("Flex_output/penalty_" + int2str(k) + ".png", y[k]);
+		imwrite ("Flex_output/penalty_" + int2str(k) + ".bmp", y[k]);
 	}
 
 }
@@ -209,7 +209,7 @@ void data_fidelity (Mat& x_k1, Mat& x_k, vector<Mat>& y, double tau, Mat& tauATz
 	Mat v = Mat::zeros(x_k.rows, x_k.cols, CV_64F);
 	v = x_k - (tau * (- grad_x - grad_y + y[2]));	// whether this grad_x,grad_y should be + or -, need to be try
 
-	imwrite("Flex_output/data.png", v);
+	imwrite("Flex_output/data.bmp", v);
 
 	Mat b_Mat = Mat::zeros(x_k.rows, x_k.cols, CV_64F);
 	b_Mat = tauATz + v;

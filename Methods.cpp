@@ -557,3 +557,102 @@ double MySpMat_dot (vector<Element>& a, vector<Element>& b) {
 
 	return out;
 }
+
+void DivideToBlocksToConstruct(vector<Mat>& BigLRimgs, vector<Mat>& BigFlows, vector<Mat>& BigConfs, Mat& PSF, double scale, Mat& BigHRimg)
+{
+	int overlappingPix = 5;
+
+	//get the image data
+	int BigLR_rows = BigLRimgs[0].rows;
+	int BigLR_cols = BigLRimgs[0].cols;
+	int BigHR_rows = BigLR_rows * scale;
+	int BigHR_cols = BigLR_cols * scale;
+
+	int LR_imgCount = BigLRimgs.size();
+	BigHRimg = Mat::zeros(BigHR_rows, BigHR_cols, CV_64F);
+
+	int longSide = (BigLR_rows > BigLR_cols) ? BigLR_rows : BigLR_cols;
+	int totalBlocksCount = 0;
+	totalBlocksCount = pow(4, ceil(log(longSide/256.f)/log(2.0f)));
+
+	double blockPerAxis = sqrt(totalBlocksCount);
+	cout << endl << "Total Blocks: " << blockPerAxis << endl;
+	double blockWidth = double(BigLR_cols)/blockPerAxis;
+	double blockHeight = double(BigLR_rows)/blockPerAxis;
+	int blockCount = 0;
+
+	for( double y = 0; y < BigLR_rows; ) {
+		int imgx, imgy, imgwidth, imgheight, imgOriginWidth, imgOriginHeight;
+		int overlappingx, overlappingy, overlappingw, overlappingh;
+		for( double x =  0 ; x < BigLR_cols ; ) {
+			cout << "Block (" << y << ", " << x << ") of (" << BigLR_rows << ", " << BigLR_cols << ")\n";
+
+			imgx = int(x);
+			imgy = int(y);
+			imgwidth = floor(x+blockWidth+0.5+EXsmall) - imgx;
+			imgheight = floor(y+blockHeight+0.5+EXsmall) - imgy;
+
+			imgOriginWidth = imgwidth;
+			imgOriginHeight = imgheight;
+
+			imgx = imgx-overlappingPix;
+			if(imgx < 0) { imgx = 0; overlappingx = 0; } else { overlappingx = overlappingPix; }
+			imgy = imgy-overlappingPix;
+			if(imgy < 0) { imgy = 0; overlappingy = 0; } else { overlappingy = overlappingPix; }
+			imgwidth = imgwidth+overlappingPix+overlappingx;  //because imgx had minus overlapping, so need to add *2 to overlap
+			if((imgx+imgwidth)>=BigLR_cols) { imgwidth = BigLR_cols-imgx; overlappingw = 0; } else { overlappingw = overlappingPix; }
+			imgheight = imgheight+overlappingPix+overlappingy;
+			if((imgy+imgheight)>=BigLR_rows) { imgheight = BigLR_rows-imgy; overlappingh = 0; } else { overlappingh = overlappingPix; }
+
+			Rect rect = Rect ( imgx, imgy , imgwidth, imgheight );
+
+			vector<Mat> imagesBlock;
+			vector<Mat> flowsBlock;
+			vector<Mat> confsBlock;
+			imagesBlock.resize(LR_imgCount);
+			flowsBlock.resize(LR_imgCount);
+			confsBlock.resize(LR_imgCount);
+			for (int k = 0; k < LR_imgCount; k++) {
+				Mat img = BigLRimgs[k];
+				Mat imgBlock = Mat(img, rect);
+				imagesBlock[k] = imgBlock.clone();
+
+				Mat flow = BigFlows[k];
+				Mat flowBlock = Mat(flow, rect);
+				flowsBlock[k] = flowBlock.clone();
+
+				Mat conf = BigConfs[k];
+				Mat confBlock = Mat(conf, rect);
+				confsBlock[k] = confBlock.clone();
+			}
+			Mat SmallHRimg;
+			// ----- CONSTRUCTION -----
+			LinearConstructor linearConstructor( imagesBlock, flowsBlock, confsBlock, scale, PSF);
+			linearConstructor.addRegularization_grad2norm(0.05);
+			linearConstructor.solve_byCG();
+			linearConstructor.output(SmallHRimg);
+
+			cout << "block construct complete\n";
+			// ----- CONSTRUCTION -----
+
+			int rowst = imgy+overlappingy, rowlength = imgheight-overlappingh-overlappingy, colst = imgx+overlappingx, collength = imgwidth-overlappingw-overlappingx;
+			Rect rectInHR = Rect( colst*2, rowst*2, collength*2, rowlength*2 );
+			cout << "rectInHR: " << rectInHR << endl;
+			Rect rectInHRBlock = Rect( (colst-imgx)*2, (rowst-imgy)*2, collength*2, rowlength*2 );
+			cout << "rectInHRBlock: " << rectInHRBlock << endl;
+			//cout << rect << endl << rectInHR << endl << rectInHRBlock << endl << HRSingleImg.size()  << endl << HRSingleImgFinal.size() << endl;
+			//HRSingleImg(rectInHRBlock).copyTo(HRSingleImgFinal(rectInHR));
+			cout << "SmallHRimg.size(): " << SmallHRimg.size() << endl;
+			SmallHRimg(rectInHRBlock).copyTo(BigHRimg(rectInHR));
+			cout << "gg\n";
+
+			blockCount++;
+			if(imgOriginWidth > blockWidth) x = imgx+overlappingx+imgOriginWidth;  //the fraction bigger than 0.5, reset to no fraction
+			else x = x+blockWidth;  //keep fraction
+		}
+		if(imgOriginHeight > blockHeight) y = imgy+overlappingy+imgOriginHeight;
+		else y = y+blockHeight;
+	}
+
+	
+}

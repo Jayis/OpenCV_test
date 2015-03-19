@@ -21,7 +21,7 @@ void BackProjection ( Mat& HRimg, double scale, vector<Mat>& imgs, vector<Mat>& 
 	preInterpolation ( PSF, super_PSF, interp_scale);
 	preInterpolation ( BPk, super_BPk, interp_scale);
 
-	//imwrite("output/PSF.png", super_PSF*255);
+	//imwrite("output/PSF.bmp", super_PSF*255);
 
 	//----- for every pixel x of HR image, record influenced pixel y
 	// initialize bucket
@@ -97,7 +97,7 @@ void BackProjection ( Mat& HRimg, double scale, vector<Mat>& imgs, vector<Mat>& 
 			for (i = 0; i < LR_rows; i++) for (j = 0; j < LR_cols; j++) {
 				LR_per.at<double>(i,j) = LR_pixels[k][i][j].percetion;
 			}
-			String LR_p_name = "output/LR_P_" + int2str(k) + "_" + int2str(iter) + ".png";
+			String LR_p_name = "output/LR_P_" + int2str(k) + "_" + int2str(iter) + ".bmp";
 			imwrite(LR_p_name, LR_per);
 		}
 		/**/
@@ -128,7 +128,7 @@ void BackProjection ( Mat& HRimg, double scale, vector<Mat>& imgs, vector<Mat>& 
 			if (abs(sum_diff) > epsi) epsi = abs(sum_diff);
 		}
 
-		//imwrite("output/HR_BP_" + int2str(iter) + ".png", HRimg);
+		//imwrite("output/HR_BP_" + int2str(iter) + ".bmp", HRimg);
 
 		// check termination criterion
 		// check termination criterion
@@ -172,7 +172,7 @@ void BackProjection_Confidence ( Mat& HRimg, double scale, vector<Mat>& imgs, ve
 	preInterpolation ( PSF, super_PSF, interp_scale);
 	preInterpolation ( BPk, super_BPk, interp_scale);
 
-	//imwrite("output/PSF.png", super_PSF*255);
+	//imwrite("output/PSF.bmp", super_PSF*255);
 
 	//----- for every pixel x of HR image, record influenced pixel y
 	// initialize bucket
@@ -261,7 +261,7 @@ void BackProjection_Confidence ( Mat& HRimg, double scale, vector<Mat>& imgs, ve
 		//	for (i = 0; i < LR_rows; i++) for (j = 0; j < LR_cols; j++) {
 		//		LR_per.at<double>(i,j) = LR_pixels[k][i][j].percetion;
 		//	}
-		//	String LR_p_name = "output/LR_P_" + int2str(k) + "_" + int2str(iter) + ".png";
+		//	String LR_p_name = "output/LR_P_" + int2str(k) + "_" + int2str(iter) + ".bmp";
 		//	imwrite(LR_p_name, LR_per);
 		//}
 		//
@@ -296,7 +296,7 @@ void BackProjection_Confidence ( Mat& HRimg, double scale, vector<Mat>& imgs, ve
 			if (abs(sum_diff) > epsi) epsi = abs(sum_diff);
 		}
 
-		//imwrite("output/HR_BP_" + int2str(iter) + ".png", HRimg);
+		//imwrite("output/HR_BP_" + int2str(iter) + ".bmp", HRimg);
 
 		// check termination criterion
 		if (BPstop.type == TermCriteria::COUNT) {

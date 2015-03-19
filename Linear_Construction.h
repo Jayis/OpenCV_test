@@ -40,7 +40,7 @@ private:
 	vector < vector <HR_Pixel> >  HR_pixels;
 	vector < vector < vector <LR_Pixel> > > LR_pixels;
 };
-
+/*
 class LinearConstructorTmp
 {
 public:

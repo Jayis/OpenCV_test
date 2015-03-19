@@ -4,6 +4,7 @@
 #include "Linear_Construction.h"
 #include "FlexISP_Reconstruction.h"
 #include "BackProjection.h"
+#include "Methods.h"
 
 using namespace std;
 using namespace cv;

@@ -7,6 +7,7 @@
 #include <Eigen\Sparse>
 
 #include "DataStructures.h"
+#include "Linear_Construction.h"
 #include "Macros.h"
 
 using namespace cv;
@@ -54,3 +55,5 @@ void formSparseI (EigenSpMat& out, int rows, int cols);
 void multiplyMySpMat (MySparseMat& A, MySparseMat& B, EigenSpMat& out);
 
 double MySpMat_dot (vector<Element>& a, vector<Element>& b);
+
+void DivideToBlocksToConstruct(vector<Mat>& BigLRimgs, vector<Mat>& BigFlows, vector<Mat>& BigConfs, Mat& PSF, double scale, Mat& BigHRimg);

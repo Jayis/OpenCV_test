@@ -246,6 +246,7 @@ void LinearConstructor::solve_byCG() {
 
 	cout << "forming A ...\n";
 	A.setFromTriplets( A_triplets.begin(), A_triplets.end() );
+	cout << "A.size(): " << A.rows() << ", " << A.cols() << endl;
 	//A.makeCompressed();
 
 	cout << "forming b ...\n";
@@ -279,7 +280,7 @@ void LinearConstructor::output(Mat& HRimg) {
 		curIdx ++;
 	}
 }
-
+/*
 LinearConstructorTmp::LinearConstructorTmp( vector<Mat>& LR_imgs, vector<Mat>& flows, double scale, Mat& PSF) {
 	cout << "----- Linear-Constructor ----- tt\n";
 
@@ -483,3 +484,4 @@ void LinearConstructorTmp::output(Mat& HRimg) {
 		curIdx ++;
 	}
 }
+*/

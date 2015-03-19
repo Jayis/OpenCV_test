@@ -16,7 +16,8 @@ void LinearConstruct_test () {
 
 	cout << "read in images\n";
 	for (int k = 0; k < n; k++) {
-		imgsC1[k] = imread("input/" + test_set + "256_0" + int2str(k+1) + ".bmp", CV_LOAD_IMAGE_GRAYSCALE);
+		//imgsC1[k] = imread("input/" + test_set + "256_0" + int2str(k+1) + ".bmp", CV_LOAD_IMAGE_GRAYSCALE);
+		imgsC1[k] = imread("input/" + test_set + "2000_0" + int2str(k+1) + ".bmp", CV_LOAD_IMAGE_GRAYSCALE);
 	}	
 
 	cout << "calculating flows & confidences\n";
@@ -28,7 +29,7 @@ void LinearConstruct_test () {
 		OptFlow->calc(imgsC1[0], imgsC1[k], flows_back[k]);
 		showConfidence (flows[k], flows_back[k], confs[k]);
 
-		imwrite("output/conf" + int2str(k) + "to0.png", confs[k]*254);
+		imwrite("output/conf" + int2str(k) + "to0.bmp", confs[k]*254);
 	}
 
 	Mat PSF = Mat::zeros(3,3,CV_64F);
@@ -46,12 +47,19 @@ void LinearConstruct_test () {
 
 	Mat HRimg;
 
+	DivideToBlocksToConstruct( imgsC1, flows, confs, PSF, 2, HRimg);
+	/*
 	LinearConstructor linearConstructor( imgsC1, flows, confs, 2, PSF);
 	linearConstructor.addRegularization_grad2norm(0.05);
 	linearConstructor.solve_byCG();
-	//linearConstructor.solve_bySparseQR();
 	linearConstructor.output(HRimg);
-	imwrite("output/" + test_set + "_LinearConstructConf03434Grad005_HR" + int2str(n) + "_CG.png", HRimg);
+	*/
+	
+	imwrite("output/" + test_set + "_LinearConstruct_HR" + int2str(n) + "_CG.bmp", HRimg);
+
+	writeImgDiff(imread("output/" + test_set + "_LinearConstruct_HR" + int2str(n) + "_CG.bmp", CV_LOAD_IMAGE_GRAYSCALE),
+		imread("Origin/" + test_set + "Ori_01.bmp", CV_LOAD_IMAGE_GRAYSCALE),
+		"output/" + test_set + "_OriginLinearConstruct" + int2str(n) + "_Diff.bmp");
 
 	return;
 }
@@ -103,7 +111,7 @@ void FlexISP_test () {
 		OptFlow->calc(imgsC1[0], imgsC1[k], flows_back[k]);
 		showConfidence (flows[k], flows_back[k], confs[k]);
 
-		imwrite("output/conf" + int2str(k) + "to0.png", confs[k]);
+		imwrite("output/conf" + int2str(k) + "to0.bmp", confs[k]);
 	}
 
 	Mat PSF = Mat::zeros(3,3,CV_64F);
@@ -121,7 +129,7 @@ void FlexISP_test () {
 
 	Mat HRimg;
 	FlexISPmain (imgsC1, flows, confs, PSF, BPk, 2, HRimg);
-	imwrite("output/" + test_set + "FlexISP_HR.png", HRimg);
+	imwrite("output/" + test_set + "FlexISP_HR.bmp", HRimg);
 
 	return ;
 }
@@ -178,13 +186,13 @@ void OptFlow_BP_test () {
 	imgs.push_back(imgsC1[0]);
 
 	BackProjection(HRimg, 2, imgs, flows, PSF, BPk, BPstop);
-	imwrite("output/" + test_set + "_HR_singleBP.png", HRimg);
+	imwrite("output/" + test_set + "_HR_singleBP.bmp", HRimg);
 
 	for (int k = 1; k < 4; k++) {
 		imgs.push_back(imgsC1[k]);
 	}
 	BackProjection(HRimg, 2, imgs, flows, PSF, BPk, BPstop);
-	imwrite("output/" + test_set + "_HR_multiBP.png", HRimg);
+	imwrite("output/" + test_set + "_HR_multiBP.bmp", HRimg);
 
 	// Back Projection
 	/*
@@ -227,7 +235,7 @@ void OptFlow_BP_test () {
 
 	BackProjection(HRimg, 2, imgs, flows, PSF, BPk, BPstop);
 
-	imwrite("output/testHR_BP.png", HRimg);
+	imwrite("output/testHR_BP.bmp", HRimg);
 	/**/
 
 	return ;
@@ -335,7 +343,7 @@ void OptFlow_ConfBP_test () {
 	imgs.push_back(imgsC1[0]);
 	/*
 	BackProjection_Confidence(HRimg, 2, imgs, flows, PSF, BPk, BPstop, confs);
-	imwrite("output/" + test_set + "_HR_singleBP.png", HRimg);
+	imwrite("output/" + test_set + "_HR_singleBP.bmp", HRimg);
 	*/
 	
 	for (int k = 1; k < 4; k++) {
@@ -343,7 +351,7 @@ void OptFlow_ConfBP_test () {
 	}
 	
 	BackProjection_Confidence(HRimg, 2, imgs, flows, PSF, BPk, BPstop, confs);
-	imwrite("output/" + test_set + "_HR_multiBP.png", HRimg);
+	imwrite("output/" + test_set + "_HR_multiBP.bmp", HRimg);
 	/**/
 
 	//ShowConfidence
@@ -364,8 +372,8 @@ void OptFlow_ConfBP_test () {
 	showConfidence (flow2to1, flow1to2, conf2to1);
 	showConfidence (flow1to2, flow2to1, conf1to2);
 
-	//imwrite("output/conf1to2.png", conf1to2);
-	imwrite("output/conf2to1.png", conf2to1);
+	//imwrite("output/conf1to2.bmp", conf1to2);
+	imwrite("output/conf2to1.bmp", conf2to1);
 	/**/
 
 	return ;
