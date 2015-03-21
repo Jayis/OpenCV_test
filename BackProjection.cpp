@@ -213,8 +213,8 @@ void BackProjection_Confidence ( Mat& HRimg, double scale, vector<Mat>& imgs, ve
 	// test bucket, forming HR initial guess
 
 	HRimg = Mat::zeros(HR_rows, HR_cols, CV_64F);
-	Mat tmp_HR;
-	resize(imgs[0], tmp_HR, Size(HR_rows, HR_cols), 0, 0, INTER_CUBIC);
+	//Mat tmp_HR;
+	//resize(imgs[0], tmp_HR, Size(HR_rows, HR_cols), 0, 0, INTER_CUBIC);
 
 	
 	double tmp_sum, tmp_d_sum;
@@ -225,21 +225,22 @@ void BackProjection_Confidence ( Mat& HRimg, double scale, vector<Mat>& imgs, ve
 			tmp_sum = 0;
 			tmp_d_sum = 0;
 			for (k = 0; k < HR_pixels[i][j].influenced_pixels.size(); k++) {
-				tmp_sum += HR_pixels[i][j].influenced_pixels[k].pixel->val /** influence_bucket[i][j].influenced_pixels[k].hBP /** influence_bucket[i][j].influenced_pixels[k].pixel->confidence/**/;
-				/*tmp_d_sum += influence_bucket[i][j].influenced_pixels[k].hBP /** influence_bucket[i][j].influenced_pixels[k].pixel->confidence/**/;
+				tmp_sum += HR_pixels[i][j].influenced_pixels[k].pixel->val * HR_pixels[i][j].influenced_pixels[k].hBP /** HR_pixels[i][j].influenced_pixels[k].pixel->confidence/**/;
+				tmp_d_sum += HR_pixels[i][j].influenced_pixels[k].hBP /** HR_pixels[i][j].influenced_pixels[k].pixel->confidence/**/;
 			}
+
 			if (HR_pixels[i][j].influenced_pixels.size() == 0) {
 				HRimg.at<double>(i,j) = tmp_sum;
 			}
 			else {
-				tmp_d_sum = HR_pixels[i][j].influenced_pixels.size();
+				//tmp_d_sum = HR_pixels[i][j].influenced_pixels.size();
 				HRimg.at<double>(i,j) = tmp_sum / tmp_d_sum;
 			}
 			/**/
 		}
 	}
 	/**/
-
+	/*
 	double sum_diff, sum_hBP, sum_confidence;
 	double cur_hBP, cur_confidence, diff;
 
@@ -283,11 +284,11 @@ void BackProjection_Confidence ( Mat& HRimg, double scale, vector<Mat>& imgs, ve
 
 				// sum up diff
 				diff = HR_pixels[i][j].influenced_pixels[k].pixel->val - HR_pixels[i][j].influenced_pixels[k].pixel->perception;				
-				sum_diff += diff * ( SQR(cur_hBP) ) * cur_confidence/**/;	
-				//sum_diff += diff *  cur_hBP  * cur_confidence/**/;	
+				sum_diff += diff * ( SQR(cur_hBP) ) * cur_confidence;	
+				//sum_diff += diff *  cur_hBP  * cur_confidence;	
 			}
 			// deal with constant & weight normalization
-			sum_diff /= (BP_c * sum_hBP * sum_confidence/**/);
+			sum_diff /= (BP_c * sum_hBP * sum_confidence);
 
 			// update HR
 			HRimg.at<double>(i,j) += sum_diff;

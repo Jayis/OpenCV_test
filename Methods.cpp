@@ -396,8 +396,12 @@ void showConfidence (Mat& flow_forward, Mat& flow_backward, Mat& confidence)
 }
 
 double ExpNegSQR (float x, float y) {
-	float sigma = 0.4343; // make one pixel far decay to 0.1
+	//float sigma = 0.4343; // make one pixel far decay to 0.1
+	float sigma = 0.2171; // make one pixel far decay to 0.01
+	//float sigma = 0.1448; // make one pixel far decay to 0.001
+
 	return exp(-(SQR(x) + SQR(y)) / sigma);
+	//return (double) ((SQR(x) < 1)&&(SQR(y) < 1));
 }
 
 double calcConfidence (Vec2f& f, Vec2f& b)
@@ -408,6 +412,73 @@ double calcConfidence (Vec2f& f, Vec2f& b)
 
 	return ExpNegSQR(diff_x, diff_y);
 }
+
+void ImgPreProcess (vector<Mat>& LR_imgs, vector<Mat>& output)
+{
+	vector<Mat> tmps, Gx, Gy;
+	tmps.resize(LR_imgs.size());
+	Gx.resize(LR_imgs.size());
+	Gy.resize(LR_imgs.size());
+
+	output.resize(LR_imgs.size());
+
+	double tmp_max = 0;
+	for (int k = 0; k < LR_imgs.size(); k++) {
+		tmp_max = 0;
+
+		GaussianBlur( LR_imgs[k], tmps[k], Size(3,3), 0, 0, BORDER_DEFAULT );
+		Sobel( LR_imgs[k], Gx[k], CV_64F, 1, 0, 3, 1, 0, BORDER_DEFAULT );
+		Sobel( LR_imgs[k], Gy[k], CV_64F, 0, 1, 3, 1, 0, BORDER_DEFAULT );
+
+		output[k] = Mat::zeros(LR_imgs[0].rows, LR_imgs[0].cols, CV_64F);
+		for (int i = 0; i < LR_imgs[0].rows; i++) for (int j = 0; j < LR_imgs[0].cols; j++) {
+			output[k].at<double>(i,j) = sqrt( SQR(Gx[k].at<double>(i,j)) + SQR(Gy[k].at<double>(i,j)) ) / ( (double) tmps[k].at<uchar>(i,j) + 1 );
+			if (output[k].at<double>(i,j) > tmp_max) {
+				tmp_max = output[k].at<double>(i,j);
+			}
+		}
+	}
+	
+	for (int k = 0; k < LR_imgs.size(); k++) {
+		output[k].convertTo(output[k], CV_8U, 255.0 / tmp_max, 0);
+
+		//imwrite("output/" + test_set + "256_0" + int2str(k+1) + "_preProcess.bmp", output[k]);
+	}
+	/**/
+}
+
+void getBetterFlow (vector<Mat>& oriConfs, vector<Mat>& oriFlows, vector<Mat>& newConfs, vector<Mat>& newFlows, vector<Mat>& combinedConfs, vector<Mat>& combinedFlows)
+{
+	combinedFlows.resize(oriConfs.size());
+	combinedConfs.resize(oriConfs.size());
+
+	for (int k = 0; k < oriConfs.size(); k++) {
+		combinedFlows[k] = Mat::zeros(oriFlows[k].rows, oriFlows[k].cols, CV_32FC2);
+		combinedConfs[k] = Mat::zeros(oriFlows[k].rows, oriFlows[k].cols, CV_64F);
+
+		for (int i = 0; i < oriConfs[0].rows; i++) for (int j = 0; j < oriConfs[0].cols; j++) {
+			Vec2f& comFlow = combinedFlows[k].at<Vec2f>(i, j);
+
+			if (oriConfs[k].at<double>(i, j) > newConfs[k].at<double>(i, j)) {
+				combinedConfs[k].at<double>(i, j) = oriConfs[k].at<double>(i, j);
+
+				Vec2f& chosenFlow = oriFlows[k].at<Vec2f>(i, j);
+
+				comFlow[0] = chosenFlow[0];
+				comFlow[1] = chosenFlow[1];
+			}
+			else {
+				combinedConfs[k].at<double>(i, j) = newConfs[k].at<double>(i, j);
+
+				Vec2f& chosenFlow = newFlows[k].at<Vec2f>(i, j);
+
+				comFlow[0] = chosenFlow[0];
+				comFlow[1] = chosenFlow[1];
+			}
+		}
+	}
+}
+
 // FlexISP
 void formResampleMatrix (vector < vector < vector <LR_Pixel> > >& LR_pixels,
 							  vector < vector <HR_Pixel> >&  HR_pixels,
@@ -573,7 +644,7 @@ void DivideToBlocksToConstruct(vector<Mat>& BigLRimgs, vector<Mat>& BigFlows, ve
 
 	int longSide = (BigLR_rows > BigLR_cols) ? BigLR_rows : BigLR_cols;
 	int totalBlocksCount = 0;
-	totalBlocksCount = pow(4, ceil(log(longSide/256.f)/log(2.0f)));
+	totalBlocksCount = pow(4, floor(log(longSide/200.f)/log(2.0f))); // origin: ceil
 
 	double blockPerAxis = sqrt(totalBlocksCount);
 	cout << endl << "Total Blocks: " << blockPerAxis << endl;
@@ -655,4 +726,37 @@ void DivideToBlocksToConstruct(vector<Mat>& BigLRimgs, vector<Mat>& BigFlows, ve
 	}
 
 	
+}
+
+//
+
+void weightedNeighborWarp (vector<vector<HR_Pixel> >& HR_pixels, Mat& HRimg)
+{
+	HRimg = Mat::zeros(HR_pixels.size(), HR_pixels[0].size(), CV_64F);
+
+	int i, j, k;
+	
+	double tmp_sum, tmp_d_sum;
+	for (i = 0; i < HR_pixels.size(); i++) {
+		for (j = 0; j < HR_pixels[i].size(); j++) {
+			//HRimg.at<double>(i,j) = (double)tmp_HR.at<uchar>(i,j);
+			
+			tmp_sum = 0;
+			tmp_d_sum = 0;
+			for (k = 0; k < HR_pixels[i][j].influenced_pixels.size(); k++) {
+				tmp_sum += HR_pixels[i][j].influenced_pixels[k].pixel->val * HR_pixels[i][j].influenced_pixels[k].hBP * HR_pixels[i][j].influenced_pixels[k].pixel->confidence/**/;
+				tmp_d_sum += HR_pixels[i][j].influenced_pixels[k].hBP /** influence_bucket[i][j].influenced_pixels[k].pixel->confidence/**/;
+			}
+			
+			if (HR_pixels[i][j].influenced_pixels.size() == 0) {
+				HRimg.at<double>(i,j) = tmp_sum;
+			}
+			else {
+				//tmp_d_sum = HR_pixels[i][j].influenced_pixels.size();
+				HRimg.at<double>(i,j) = tmp_sum / tmp_d_sum;
+			}
+			/**/
+		}
+	}
+
 }

@@ -1,24 +1,37 @@
 #include "Experiments.h"
 
 void LinearConstruct_test () {
-	String test_set = "bear";	
+	String test_set = "res";	
 	int n = 4;
 
 	vector<Mat> imgsC1;
 	vector<Mat> flows;
 	vector<Mat> flows_back;
 	vector<Mat> confs;
+	vector<Mat> preProsImgs;
+	vector<Mat> newFlows;
+	vector<Mat> newFlows_back;
+	vector<Mat> newConfs;
+	vector<Mat> combineFlows;
+	vector<Mat> combineConfs;
 
 	imgsC1.resize(n);
 	flows.resize(n);
 	flows_back.resize(n);
 	confs.resize(n);
+	preProsImgs.resize(n);
+	newFlows.resize(n);
+	newFlows_back.resize(n);
+	newConfs.resize(n);
+	combineFlows.resize(n);
+	combineConfs.resize(n);
 
 	cout << "read in images\n";
 	for (int k = 0; k < n; k++) {
-		//imgsC1[k] = imread("input/" + test_set + "256_0" + int2str(k+1) + ".bmp", CV_LOAD_IMAGE_GRAYSCALE);
-		imgsC1[k] = imread("input/" + test_set + "2000_0" + int2str(k+1) + ".bmp", CV_LOAD_IMAGE_GRAYSCALE);
-	}	
+		imgsC1[k] = imread("input/" + test_set + "256_0" + int2str(k+1) + ".bmp", CV_LOAD_IMAGE_GRAYSCALE);
+		//imgsC1[k] = imread("input/" + test_set + "2000_0" + int2str(k+1) + ".bmp", CV_LOAD_IMAGE_GRAYSCALE);		
+	}
+	ImgPreProcess(imgsC1, preProsImgs);
 
 	cout << "calculating flows & confidences\n";
 	Ptr<DenseOpticalFlow> OptFlow = createOptFlow_DualTVL1();	
@@ -29,9 +42,22 @@ void LinearConstruct_test () {
 		OptFlow->calc(imgsC1[0], imgsC1[k], flows_back[k]);
 		showConfidence (flows[k], flows_back[k], confs[k]);
 
-		imwrite("output/conf" + int2str(k) + "to0.bmp", confs[k]*254);
+		newFlows[k] = Mat::zeros(imgsC1[0].rows, imgsC1[0].cols, CV_32FC2);
+		newFlows_back[k] = Mat::zeros(imgsC1[0].rows, imgsC1[0].cols, CV_32FC2);
+		OptFlow->calc(preProsImgs[k], preProsImgs[0], newFlows[k]);
+		OptFlow->calc(preProsImgs[0], preProsImgs[k], newFlows_back[k]);
+		showConfidence (newFlows[k], newFlows_back[k], newConfs[k]);		
+
+		imwrite("output/conf_" + test_set + int2str(k) + "to0.bmp", confs[k]*254);
+		imwrite("output/newConf_" + test_set + int2str(k) + "to0.bmp", newConfs[k]*254);
+
+	}
+	getBetterFlow(confs, flows, newConfs, newFlows, combineConfs, combineFlows);
+	for (int k = 0; k < n; k++) {		
+		imwrite("output/combineConfs_" + test_set + int2str(k) + "to0.bmp", combineConfs[k]*254);
 	}
 
+	
 	Mat PSF = Mat::zeros(3,3,CV_64F);
 	Mat BPk = PSF;
 	
@@ -46,20 +72,31 @@ void LinearConstruct_test () {
 	PSF.at<double>(2,2) = 0.0113;
 
 	Mat HRimg;
-
-	DivideToBlocksToConstruct( imgsC1, flows, confs, PSF, 2, HRimg);
 	/*
-	LinearConstructor linearConstructor( imgsC1, flows, confs, 2, PSF);
+	TermCriteria BPstop;
+	BPstop.type = TermCriteria::COUNT + TermCriteria::EPS;
+	BPstop.maxCount = 10;
+	BPstop.epsilon = 1;
+
+	vector<Mat> bpimg, bpflows;
+	bpimg.push_back(imgsC1[3]);
+	bpflows.push_back(combineFlows[3]);
+
+	BackProjection_Confidence(HRimg, 2, bpimg, bpflows, PSF, BPk, BPstop, confs);
+	*/
+	//DivideToBlocksToConstruct( imgsC1, newFlows, newConfs, PSF, 2, HRimg);
+	
+	LinearConstructor linearConstructor( imgsC1, combineFlows, combineConfs, 2, PSF);
 	linearConstructor.addRegularization_grad2norm(0.05);
 	linearConstructor.solve_byCG();
 	linearConstructor.output(HRimg);
-	*/
+	/**/
 	
 	imwrite("output/" + test_set + "_LinearConstruct_HR" + int2str(n) + "_CG.bmp", HRimg);
-
+	/*
 	writeImgDiff(imread("output/" + test_set + "_LinearConstruct_HR" + int2str(n) + "_CG.bmp", CV_LOAD_IMAGE_GRAYSCALE),
 		imread("Origin/" + test_set + "Ori_01.bmp", CV_LOAD_IMAGE_GRAYSCALE),
-		"output/" + test_set + "_OriginLinearConstruct" + int2str(n) + "_Diff.bmp");
+		"output/" + test_set + "_OriginLinearConstruct" + int2str(n) + "_Diff.bmp");*/
 
 	return;
 }
@@ -257,6 +294,7 @@ void OptFlow_ConfBP_test () {
 	vector<Mat> Gy;
 	vector<Mat> imgsProcessed;
 	vector<Mat> tmps;
+	vector<Mat> curUsing;
 
 	imgsC1.resize(n);
 	imgsC3.resize(n);
@@ -267,13 +305,14 @@ void OptFlow_ConfBP_test () {
 	Gy.resize(n);
 	imgsProcessed.resize(n);
 	tmps.resize(n);
-	warps.resize(4);
+	warps.resize(n);
+	curUsing.resize(n);
 
 	for (int k = 0; k < 4; k++) {
 		imgsC1[k] = imread("input/" + test_set + "256_0" + int2str(k+1) + ".bmp", CV_LOAD_IMAGE_GRAYSCALE);
-		imgsC3[k] = imread("input/" + test_set + "256_0" + int2str(k+1) + ".bmp", CV_LOAD_IMAGE_COLOR);
+		//imgsC3[k] = imread("input/" + test_set + "256_0" + int2str(k+1) + ".bmp", CV_LOAD_IMAGE_COLOR);
 	}
-	/*
+	
 	double tmp_max = 0;
 	for (int k = 0; k < 4; k++) {
 		tmp_max = 0;
@@ -284,32 +323,37 @@ void OptFlow_ConfBP_test () {
 
 		imgsProcessed[k] = Mat::zeros(imgsC1[0].rows, imgsC1[0].cols, CV_64F);
 		for (int i = 0; i < imgsC1[0].rows; i++) for (int j = 0; j < imgsC1[0].cols; j++) {
-			imgsProcessed[k].at<double>(i,j) = sqrt( SQR(Gx[k].at<double>(i,j)) + SQR(Gy[k].at<double>(i,j)) ) / ( (double) tmps[k].at<uchar>(i,j) + EXsmall );
+			imgsProcessed[k].at<double>(i,j) = sqrt( SQR(Gx[k].at<double>(i,j)) + SQR(Gy[k].at<double>(i,j)) ) / ( (double) tmps[k].at<uchar>(i,j) + 1 );
 			if (imgsProcessed[k].at<double>(i,j) > tmp_max) {
 				tmp_max = imgsProcessed[k].at<double>(i,j);
 			}
-		}		
+		}
 	}
 	for (int k = 0; k < 4; k++) {
 		imgsProcessed[k].convertTo(imgsProcessed[k], CV_8U, 255.0 / tmp_max, 0);
 
 		imwrite("output/" + test_set + "256_0" + int2str(k+1) + "_preProcess.bmp", imgsProcessed[k]);
 	}
-	*/
+	
+
+	for (int k = 0; k < 4; k++) {
+		curUsing[k] = imgsProcessed[k];
+	}
+
 	
 	// careful calculate which flow
 	Ptr<DenseOpticalFlow> OptFlow = createOptFlow_DualTVL1();
 	for (int k = 0; k < 4; k++) {
-		flows[k] = Mat::zeros(imgsC1[0].rows, imgsC1[0].cols, CV_32FC2);
-		flows_back[k] = Mat::zeros(imgsC1[0].rows, imgsC1[0].cols, CV_32FC2);
-		OptFlow->calc(imgsC1[k], imgsC1[0], flows[k]);
-		OptFlow->calc(imgsC1[0], imgsC1[k], flows_back[k]);
+		flows[k] = Mat::zeros(curUsing[0].rows, curUsing[0].cols, CV_32FC2);
+		flows_back[k] = Mat::zeros(curUsing[0].rows, curUsing[0].cols, CV_32FC2);
+		OptFlow->calc(curUsing[k], curUsing[0], flows[k]);
+		OptFlow->calc(curUsing[0], curUsing[k], flows_back[k]);
 	}
 	
 	
 	for (int k = 0; k < 4; k++) {
 		showConfidence (flows[k], flows_back[k], confs[k]);
-		imwrite("output/" + test_set + "256_" + int2str(k+1) + "to1_confidence.bmp", confs[k]);
+		imwrite("output/" + test_set + "256_" + int2str(k+1) + "to1_confidence.bmp", confs[k]*254);
 	}
 	
 	/*
@@ -317,8 +361,8 @@ void OptFlow_ConfBP_test () {
 		NaiveForwardNNWarp(imgsC3[k], flows[k], warps[k], 3);
 		imwrite("output/" + test_set + "256_" + int2str(k+1) + "warpto1.bmp", warps[k]);
 	}
-	*/
-	
+	/**/
+	/*
 	Mat HRimg;
 	Mat PSF = Mat::zeros(3,3,CV_64F);
 	Mat BPk = PSF;
@@ -340,13 +384,7 @@ void OptFlow_ConfBP_test () {
 
 	vector<Mat> imgs;
 	
-	imgs.push_back(imgsC1[0]);
-	/*
-	BackProjection_Confidence(HRimg, 2, imgs, flows, PSF, BPk, BPstop, confs);
-	imwrite("output/" + test_set + "_HR_singleBP.bmp", HRimg);
-	*/
-	
-	for (int k = 1; k < 4; k++) {
+	for (int k = 0; k < 4; k++) {
 		imgs.push_back(imgsC1[k]);
 	}
 	

@@ -36,6 +36,10 @@ void showConfidence (Mat& flow_forward, Mat& flow_backward, Mat& confidence);
 double ExpNegSQR (float x);
 
 double calcConfidence (Vec2f& f, Vec2f& b);
+
+void ImgPreProcess (vector<Mat>& LR_imgs, vector<Mat>& output);
+
+void getBetterFlow (vector<Mat>& oriConfs, vector<Mat>& OriFlow, vector<Mat>& newConfs, vector<Mat>& newFlows, vector<Mat>& combinedConfs, vector<Mat>& combinedFlows);
 // FlexISP
 void formResampleMatrix (vector < vector < vector <LR_Pixel> > >& LR_pixels,
 							  vector < vector <HR_Pixel> >&  HR_pixels,
@@ -57,3 +61,6 @@ void multiplyMySpMat (MySparseMat& A, MySparseMat& B, EigenSpMat& out);
 double MySpMat_dot (vector<Element>& a, vector<Element>& b);
 
 void DivideToBlocksToConstruct(vector<Mat>& BigLRimgs, vector<Mat>& BigFlows, vector<Mat>& BigConfs, Mat& PSF, double scale, Mat& BigHRimg);
+
+// 
+void weightedNeighborWarp (vector<vector<HR_Pixel> >& HR_pixels, Mat& HRimg);
