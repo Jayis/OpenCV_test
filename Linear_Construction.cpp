@@ -118,10 +118,9 @@ LinearConstructor::LinearConstructor( vector<Mat>& LR_imgs, vector<Mat>& flows, 
 		interp_scale
 		);
 	//
-	//A_triplets.reserve( HR_pixelCount * (PSF.rows+1) * (PSF.cols+1) * LR_imgCount + 5 * HR_pixelCount );
-	//b_vec.reserve( LR_imgCount * LR_pixelCount + 5 * HR_pixelCount );
 	curRow = 0;
 	addDataFidelityWithConf(confs);
+
 
 	cout << "----- Linear-Constructor ----- CONSTRUCT COMPLETE\n";
 }
@@ -259,7 +258,7 @@ void LinearConstructor::solve_byCG() {
 	//AT.makeCompressed();
 	
 	cout << "multiplying ATA..." << endl;
-	ATA = (AT * A).pruned(1, EXsmall);
+	ATA = (AT * A).pruned(100, EXsmall);
 	//ATA.makeCompressed();
 	cout << "multiplying ATb...\n";
 	ATb = AT * b;
