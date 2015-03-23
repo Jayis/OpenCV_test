@@ -1,7 +1,7 @@
 #include "Experiments.h"
 
 void LinearConstruct_test () {
-	String test_set = "res";	
+	String test_set = "res2000";	
 	int n = 4;
 
 	vector<Mat> imgsC1;
@@ -28,8 +28,7 @@ void LinearConstruct_test () {
 
 	cout << "read in images\n";
 	for (int k = 0; k < n; k++) {
-		imgsC1[k] = imread("input/" + test_set + "256_0" + int2str(k+1) + ".bmp", CV_LOAD_IMAGE_GRAYSCALE);
-		//imgsC1[k] = imread("input/" + test_set + "2000_0" + int2str(k+1) + ".bmp", CV_LOAD_IMAGE_GRAYSCALE);		
+		imgsC1[k] = imread("input/" + test_set + "_0" + int2str(k+1) + ".bmp", CV_LOAD_IMAGE_GRAYSCALE);		
 	}
 	ImgPreProcess(imgsC1, preProsImgs);
 
@@ -53,7 +52,12 @@ void LinearConstruct_test () {
 
 	}
 	getBetterFlow(confs, flows, newConfs, newFlows, combineConfs, combineFlows);
-	for (int k = 0; k < n; k++) {		
+	for (int k = 0; k < n; k++) {
+		flows[k].resize(0, 0);
+		confs[k].resize(0, 0);
+		newFlows[k].resize(0, 0);
+		newConfs[k].resize(0, 0);
+
 		imwrite("output/combineConfs_" + test_set + int2str(k) + "to0.bmp", combineConfs[k]*254);
 	}
 
@@ -84,8 +88,8 @@ void LinearConstruct_test () {
 
 	BackProjection_Confidence(HRimg, 2, bpimg, bpflows, PSF, BPk, BPstop, confs);
 	*/
-	//DivideToBlocksToConstruct( imgsC1, newFlows, newConfs, PSF, 2, HRimg);
-	
+	DivideToBlocksToConstruct( imgsC1, combineFlows, combineConfs, PSF, 2, HRimg);
+	/*
 	LinearConstructor linearConstructor( imgsC1, combineFlows, combineConfs, 2, PSF);
 	linearConstructor.addRegularization_grad2norm(0.05);
 	linearConstructor.solve_byCG();
@@ -93,10 +97,10 @@ void LinearConstruct_test () {
 	/**/
 	
 	imwrite("output/" + test_set + "_LinearConstruct_HR" + int2str(n) + "_CG.bmp", HRimg);
-	/*
+	
 	writeImgDiff(imread("output/" + test_set + "_LinearConstruct_HR" + int2str(n) + "_CG.bmp", CV_LOAD_IMAGE_GRAYSCALE),
 		imread("Origin/" + test_set + "Ori_01.bmp", CV_LOAD_IMAGE_GRAYSCALE),
-		"output/" + test_set + "_OriginLinearConstruct" + int2str(n) + "_Diff.bmp");*/
+		"output/" + test_set + "_OriginLinearConstruct" + int2str(n) + "_Diff.bmp");
 
 	return;
 }

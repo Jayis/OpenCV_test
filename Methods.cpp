@@ -644,7 +644,7 @@ void DivideToBlocksToConstruct(vector<Mat>& BigLRimgs, vector<Mat>& BigFlows, ve
 
 	int longSide = (BigLR_rows > BigLR_cols) ? BigLR_rows : BigLR_cols;
 	int totalBlocksCount = 0;
-	totalBlocksCount = pow(4, floor(log(longSide/200.f)/log(2.0f))); // origin: ceil
+	totalBlocksCount = pow(4, floor(log(longSide/128.f)/log(2.0f))); // origin: ceil
 
 	double blockPerAxis = sqrt(totalBlocksCount);
 	cout << endl << "Total Blocks: " << blockPerAxis << endl;

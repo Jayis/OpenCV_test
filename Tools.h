@@ -11,4 +11,4 @@ using namespace cv;
 
 string int2str(int i);
 
-void writeImgDiff(Mat& a, Mat& b, string& name);
+void writeImgDiff(Mat& a, Mat& b, string name);
