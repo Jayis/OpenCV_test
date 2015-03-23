@@ -7,7 +7,7 @@
 #include <Eigen\Sparse>
 
 #include "DataStructures.h"
-#include "Linear_Construction.h"
+#include "Linear_Reconstruction.h"
 #include "Macros.h"
 
 using namespace cv;
@@ -61,6 +61,5 @@ void multiplyMySpMat (MySparseMat& A, MySparseMat& B, EigenSpMat& out);
 double MySpMat_dot (vector<Element>& a, vector<Element>& b);
 
 void DivideToBlocksToConstruct(vector<Mat>& BigLRimgs, vector<Mat>& BigFlows, vector<Mat>& BigConfs, Mat& PSF, double scale, Mat& BigHRimg);
-
 // 
 void weightedNeighborWarp (vector<vector<HR_Pixel> >& HR_pixels, Mat& HRimg);

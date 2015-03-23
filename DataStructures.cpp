@@ -17,7 +17,44 @@ HR_Pixel::HR_Pixel()
 {
 	hBP_sum = 0;
 }
+//
+HR_Pixel_Array::HR_Pixel_Array(int r, int c)
+{
+	hr_pixels = new HR_Pixel[r * c];
+	HR_rows = r;
+	HR_cols = c;
+	HR_pixelCount = r * c;
+}
 
+HR_Pixel& HR_Pixel_Array::access(int i, int j)
+{
+	return hr_pixels[i * HR_cols + j];
+}
+
+HR_Pixel_Array::~HR_Pixel_Array()
+{
+	delete hr_pixels;
+}
+
+LR_Pixel_Array::LR_Pixel_Array(int k, int r, int c)
+{
+	lr_pixels = new LR_Pixel[k * r * c];
+	LR_imgCount = k;
+	LR_rows = r;
+	LR_cols = c;
+	LR_pixelCount = r * c;
+}
+
+LR_Pixel& LR_Pixel_Array::access(int k, int i, int j)
+{
+	return lr_pixels[k * LR_pixelCount + i * LR_cols + j];
+}
+
+LR_Pixel_Array::~LR_Pixel_Array()
+{
+	delete lr_pixels;
+}
+//
 MySparseMat::MySparseMat()
 {
 	type = 0;

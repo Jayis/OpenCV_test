@@ -47,6 +47,33 @@ public:
 	HR_Pixel* pixel;
 };
 
+class HR_Pixel_Array {
+public:
+	HR_Pixel_Array(int r, int c);
+	~HR_Pixel_Array();
+
+	HR_Pixel& access(int i, int j);
+
+private:
+	int HR_rows, HR_cols;
+	int HR_pixelCount;
+	HR_Pixel* hr_pixels;
+};
+
+class LR_Pixel_Array {
+public:
+	LR_Pixel_Array(int k, int r, int c);
+	~LR_Pixel_Array();
+
+	LR_Pixel& access(int k, int i, int j);
+
+private:
+	int LR_imgCount;
+	int LR_pixelCount;
+	int LR_rows, LR_cols;
+	LR_Pixel* lr_pixels;
+};
+
 //-----SparseMat
 class Element {
 public:

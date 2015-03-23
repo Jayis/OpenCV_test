@@ -1,7 +1,7 @@
 #include <opencv2\core\core.hpp>
 #include <opencv2\video\video.hpp>
 
-#include "Linear_Construction.h"
+#include "Linear_Reconstruction.h"
 #include "FlexISP_Reconstruction.h"
 #include "BackProjection.h"
 #include "Methods.h"
