@@ -1,5 +1,56 @@
 #include "Experiments.h"
 
+void flow2H_test () {
+	String test_set = "res256";
+	int n = 4;
+
+	vector<Mat> imgsC1;
+	vector<Mat> flows;
+	vector<Mat> flows_back;
+	vector<Mat> confs;
+	vector<Mat> newConfs;
+
+	imgsC1.resize(n);
+	flows.resize(n);
+	flows_back.resize(n);
+	confs.resize(n);
+	newConfs.resize(n);
+
+	cout << "read in images\n";
+	for (int k = 0; k < n; k++) {
+		imgsC1[k] = imread("input/" + test_set + "_0" + int2str(k+1) + ".bmp", CV_LOAD_IMAGE_GRAYSCALE);		
+	}
+
+	cout << "calculating flows & confidences\n";
+	Ptr<DenseOpticalFlow> OptFlow = createOptFlow_DualTVL1();	
+	for (int k = 0; k < n; k++) {
+		flows[k] = Mat::zeros(imgsC1[0].rows, imgsC1[0].cols, CV_32FC2);
+		flows_back[k] = Mat::zeros(imgsC1[0].rows, imgsC1[0].cols, CV_32FC2);
+		OptFlow->calc(imgsC1[k], imgsC1[0], flows[k]);
+		OptFlow->calc(imgsC1[0], imgsC1[k], flows_back[k]);
+		showConfidence (flows[k], flows_back[k], confs[k]);
+		showConfidence_new (flows[k], flows_back[k], newConfs[k]);
+
+		imwrite("output/conf_" + test_set + int2str(k) + "to0.bmp", confs[k]*254);
+		imwrite("output/confnew_" + test_set + int2str(k) + "to0.bmp", newConfs[k]*254);
+
+	}
+
+	double confThresh = 0.1;	
+
+	for (int k = 0; k < n; k++) {
+		vector<Point2f> srcPoints, dstPoints;
+		srcPoints.reserve(newConfs[k].rows * newConfs[k].cols);
+		dstPoints.reserve(newConfs[k].rows * newConfs[k].cols);
+
+		for (int i = 0; i < newConfs[k].rows; i++) for (int j = 0; j < newConfs[k].cols; j++) {
+			if (newConfs[k].at<double>(i, j) > confThresh) {
+				Vec2f& tmp_flow = flows[k].at<Vec2f>(i, j);
+			}
+		}
+	}
+}
+
 void LinearConstruct_test () {
 	String test_set = "res2000";	
 	int n = 4;

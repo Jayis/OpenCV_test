@@ -305,6 +305,32 @@ void NaiveForwardNNWarp (Mat& input, Mat& flow, Mat& output, int ch)
 	
 }
 
+void showConfidence_new (Mat& flow_forward, Mat& flow_backward, Mat& confidence)
+{
+	confidence = Mat::zeros(flow_forward.rows, flow_forward.cols, CV_64F);
+
+	double interpScale = 10;
+
+	cout << "aa2";
+	Mat preInterpBackFlow;
+	resize(flow_backward, preInterpBackFlow, Size(), interpScale, interpScale, INTER_CUBIC);
+
+	cout << "aa1";
+
+	for (int i = 0; i < confidence.rows; i++) for (int j = 0; j < confidence.cols; j++) {
+		// forward
+		Vec2f& ForwardFlow = flow_forward.at<Vec2f>(i, j);
+
+		double tmp_posy = i + ForwardFlow[1];
+		double tmp_posx = j + ForwardFlow[0];
+		
+		if (tmp_posy >= 0 && tmp_posx >= 0 && tmp_posy < flow_forward.rows && tmp_posx < flow_forward.cols) {
+			Vec2f& BackFlow = preInterpBackFlow.at<Vec2f>((int) (tmp_posy*interpScale), (int) (tmp_posx*interpScale));
+			confidence.at<double>(i, j) = calcConfidence(ForwardFlow, BackFlow);
+		}
+	}
+}
+
 void showConfidence (Mat& flow_forward, Mat& flow_backward, Mat& confidence)
 {
 	// use CV_32FC2
@@ -396,8 +422,8 @@ void showConfidence (Mat& flow_forward, Mat& flow_backward, Mat& confidence)
 }
 
 double ExpNegSQR (float x, float y) {
-	//float sigma = 0.4343; // make one pixel far decay to 0.1
-	float sigma = 0.2171; // make one pixel far decay to 0.01
+	float sigma = 0.4343; // make one pixel far decay to 0.1
+	//float sigma = 0.2171; // make one pixel far decay to 0.01
 	//float sigma = 0.1448; // make one pixel far decay to 0.001
 
 	return exp(-(SQR(x) + SQR(y)) / sigma);

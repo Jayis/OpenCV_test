@@ -31,6 +31,8 @@ void HR_to_LR_percetion ( Mat& HRimg, vector < vector < vector <LR_Pixel> > >& L
 // OptFlow
 void NaiveForwardNNWarp (Mat& source, Mat& flow, Mat& output, int ch);
 
+void showConfidence_new (Mat& flow_forward, Mat& flow_backward, Mat& confidence);
+
 void showConfidence (Mat& flow_forward, Mat& flow_backward, Mat& confidence);
 
 double ExpNegSQR (float x);

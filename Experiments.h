@@ -9,6 +9,8 @@
 using namespace std;
 using namespace cv;
 
+void flow2H_test ();
+
 void LinearConstruct_test ();
 
 void FlexISP_test ();
