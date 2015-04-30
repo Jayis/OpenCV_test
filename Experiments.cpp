@@ -1,7 +1,7 @@
 #include "Experiments.h"
 
 void flow2H_test () {
-	String test_set = "res256";
+	String test_set = "shop2000";
 	int n = 4;
 
 	vector<Mat> imgsC1;
@@ -18,27 +18,34 @@ void flow2H_test () {
 
 	cout << "read in images\n";
 	for (int k = 0; k < n; k++) {
-		imgsC1[k] = imread("input/" + test_set + "_0" + int2str(k+1) + ".bmp", CV_LOAD_IMAGE_GRAYSCALE);		
+		imgsC1[k] = imread("input/" + test_set + "_0" + int2str(k+1) + ".bmp", CV_LOAD_IMAGE_GRAYSCALE);
 	}
 
 	cout << "calculating flows & confidences\n";
 	Ptr<DenseOpticalFlow> OptFlow = createOptFlow_DualTVL1();	
 	for (int k = 0; k < n; k++) {
+		cout << "\t calculating " << int2str(k) << " ...\n";
+
 		flows[k] = Mat::zeros(imgsC1[0].rows, imgsC1[0].cols, CV_32FC2);
 		flows_back[k] = Mat::zeros(imgsC1[0].rows, imgsC1[0].cols, CV_32FC2);
 		OptFlow->calc(imgsC1[k], imgsC1[0], flows[k]);
 		OptFlow->calc(imgsC1[0], imgsC1[k], flows_back[k]);
+		cout << "\t showing Confidence " << int2str(k) << " ...\n";
 		showConfidence (flows[k], flows_back[k], confs[k]);
-		showConfidence_new (flows[k], flows_back[k], newConfs[k]);
+		//cout << "\t showing newConfidence " << int2str(k) << " ...\n";
+		//showConfidence_new (flows[k], flows_back[k], newConfs[k]);
 
 		imwrite("output/conf_" + test_set + int2str(k) + "to0.bmp", confs[k]*254);
-		imwrite("output/confnew_" + test_set + int2str(k) + "to0.bmp", newConfs[k]*254);
+		//imwrite("output/confnew_" + test_set + int2str(k) + "to0.bmp", newConfs[k]*254);
+
+		newConfs[k] = confs[k];
 
 	}
 
-	double confThresh = 0.1;	
+	double confThresh = 0.1;
 
-	for (int k = 0; k < n; k++) {
+	for (int k = 1; k < n; k++) {
+		
 		vector<Point2f> srcPoints, dstPoints;
 		srcPoints.reserve(newConfs[k].rows * newConfs[k].cols);
 		dstPoints.reserve(newConfs[k].rows * newConfs[k].cols);
@@ -46,9 +53,41 @@ void flow2H_test () {
 		for (int i = 0; i < newConfs[k].rows; i++) for (int j = 0; j < newConfs[k].cols; j++) {
 			if (newConfs[k].at<double>(i, j) > confThresh) {
 				Vec2f& tmp_flow = flows[k].at<Vec2f>(i, j);
+
+				srcPoints.push_back(Point2f(j, i));
+				dstPoints.push_back(Point2f(j + tmp_flow[0], i + tmp_flow[1]));
 			}
+		}		
+
+		Mat H, mask, maskImg;
+
+		float cur_err[6] = {0.1, 0.5, 1, 2.5, 5, 10};
+		int test_num = 0;
+
+		while (test_num < 6) {
+
+			H = findHomography(srcPoints, dstPoints, CV_RANSAC, cur_err[test_num], mask);
+
+			maskImg = Mat::zeros(newConfs[k].rows, newConfs[k].cols, CV_32F);
+
+			cout << mask.type();
+
+			int count = 0;
+			for (int i = 0; i < mask.rows; i++) {
+				maskImg.at<float>(srcPoints[i]) = mask.at<short>(i, 1);
+				if (mask.at<short>(i, 1) == 0) {
+					count++;
+				}
+			}
+
+			imwrite("output/" + test_set + "_mask" + int2str(test_num) + "_" + int2str(k) + ".png", maskImg*254);
+			cout << count << "/" << mask.rows << endl;
+
+			test_num++;
 		}
 	}
+
+
 }
 
 void LinearConstruct_test () {

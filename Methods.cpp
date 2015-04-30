@@ -311,11 +311,8 @@ void showConfidence_new (Mat& flow_forward, Mat& flow_backward, Mat& confidence)
 
 	double interpScale = 10;
 
-	cout << "aa2";
 	Mat preInterpBackFlow;
 	resize(flow_backward, preInterpBackFlow, Size(), interpScale, interpScale, INTER_CUBIC);
-
-	cout << "aa1";
 
 	for (int i = 0; i < confidence.rows; i++) for (int j = 0; j < confidence.cols; j++) {
 		// forward
