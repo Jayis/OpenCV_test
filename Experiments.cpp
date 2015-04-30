@@ -1,7 +1,7 @@
 #include "Experiments.h"
 
 void flow2H_test () {
-	String test_set = "shop2000";
+	String test_set = "res256";
 	int n = 4;
 
 	vector<Mat> imgsC1;
@@ -21,6 +21,30 @@ void flow2H_test () {
 		imgsC1[k] = imread("input/" + test_set + "_0" + int2str(k+1) + ".bmp", CV_LOAD_IMAGE_GRAYSCALE);
 	}
 
+	int minHessian = 400;
+	SurfFeatureDetector detector( minHessian );
+	vector< vector<KeyPoint> >  keypoints;
+	keypoints.resize(n);
+	for (int k = 0; k < n; k++) {
+		detector.detect( imgsC1[k], keypoints[k] );
+	}
+	SurfDescriptorExtractor extractor;
+	vector<Mat> descriptors;
+	descriptors.resize(n);
+	for (int k = 0; k < n; k++) {
+		extractor.compute( imgsC1[k], keypoints[k], descriptors[k] );
+	}
+	FlannBasedMatcher matcher;
+	vector< vector< DMatch > > matches;
+	matches.resize(n);
+	for (int k = 1; k < n; k++) {
+		matcher.match( descriptors[0], descriptors[k], matches[] );
+	}
+	
+
+  double max_dist = 0; double min_dist = 100;
+
+	/*
 	cout << "calculating flows & confidences\n";
 	Ptr<DenseOpticalFlow> OptFlow = createOptFlow_DualTVL1();	
 	for (int k = 0; k < n; k++) {
@@ -86,7 +110,7 @@ void flow2H_test () {
 			test_num++;
 		}
 	}
-
+	*/
 
 }
 
