@@ -1,5 +1,79 @@
 #include "Experiments.h"
 
+void test()
+{
+	String test_set = "res256";
+	int n = 4;
+
+	vector<Mat> imgsC1;
+	vector<Mat> flows;
+	vector<Mat> flows_back;
+	vector<Mat> confs;
+	
+	vector<Mat> blurImg;
+	vector<Mat> blur_flows;
+	vector<Mat> blur_flows_back;
+	vector<Mat> blur_confs;
+
+	vector<Mat> diffs;
+
+	imgsC1.resize(n);
+	flows.resize(n);
+	flows_back.resize(n);
+	confs.resize(n);
+
+	blurImg.resize(n);
+	blur_flows.resize(n);
+	blur_flows_back.resize(n);
+	blur_confs.resize(n);
+
+	diffs.resize(n);
+
+	cout << "read in images\n";
+	for (int k = 0; k < n; k++) {
+		imgsC1[k] = imread("input/" + test_set + "_0" + int2str(k+1) + ".bmp", CV_LOAD_IMAGE_GRAYSCALE);
+		GaussianBlur( imgsC1[k], blurImg[k], Size( 21, 21), 1, 1 );
+		imwrite("output/" + test_set + int2str(k) + "_blur.bmp", blurImg[k]);
+	}
+
+	cout << "calculating flows & confidences\n";
+	Ptr<DenseOpticalFlow> OptFlow = createOptFlow_DualTVL1();	
+	for (int k = 0; k < n; k++) {
+		cout << "\t calculating " << int2str(k) << " ...\n";
+
+		//flows[k] = Mat::zeros(imgsC1[0].rows, imgsC1[0].cols, CV_32FC2);
+		//flows_back[k] = Mat::zeros(imgsC1[0].rows, imgsC1[0].cols, CV_32FC2);
+		OptFlow->calc(imgsC1[k], imgsC1[0], flows[k]);
+		OptFlow->calc(imgsC1[0], imgsC1[k], flows_back[k]);
+		cout << "\t showing Confidence " << int2str(k) << " ...\n";
+		showConfidence (flows[k], flows_back[k], confs[k]);
+
+		imwrite("output/conf_" + test_set + int2str(k) + "to0.bmp", confs[k]*254);
+		//imwrite("output/confnew_" + test_set + int2str(k) + "to0.bmp", newConfs[k]*254);
+
+		//blur_flows[k] = Mat::zeros(imgsC1[0].rows, imgsC1[0].cols, CV_32FC2);
+		//blur_flows_back[k] = Mat::zeros(imgsC1[0].rows, imgsC1[0].cols, CV_32FC2);
+		OptFlow->calc(blurImg[k], blurImg[0], blur_flows[k]);
+		OptFlow->calc(blurImg[0], blurImg[k], blur_flows_back[k]);
+		showConfidence (blur_flows[k], blur_flows_back[k], blur_confs[k]);
+
+		imwrite("output/blurConf_" + test_set + int2str(k) + "to0.bmp", blur_confs[k]*254);
+
+		diffs[k] = Mat::zeros(flows[k].rows, flows[k].cols, CV_32F);
+		for (int i = 0; i < flows[k].rows; i++) for (int j = 0; j < flows[k].cols; j++) {
+			Vec2f& tmp1 = flows[k].at<Vec2f>(i, j);
+			Vec2f& tmp2 = blur_flows[k].at<Vec2f>(i, j);
+
+			diffs[k].at<float>(i, j) =  SQR(tmp1[0] - tmp2[0]) + SQR(tmp1[1] - tmp2[1]);
+		}
+
+		imwrite("output/diff_" + test_set + int2str(k) + ".bmp", diffs[k]);
+	}
+
+
+
+}
+
 void flow2H_test () {
 	String test_set = "res256";
 	int n = 4;
@@ -38,7 +112,7 @@ void flow2H_test () {
 	vector< vector< DMatch > > matches;
 	matches.resize(n);
 	for (int k = 1; k < n; k++) {
-		matcher.match( descriptors[0], descriptors[k], matches[] );
+		matcher.match( descriptors[0], descriptors[k], matches[k] );
 	}
 	
 
@@ -115,40 +189,60 @@ void flow2H_test () {
 }
 
 void LinearConstruct_test () {
-	String test_set = "res2000";	
+	String test_set = "res256";	
 	int n = 4;
 
 	vector<Mat> imgsC1;
 	vector<Mat> flows;
 	vector<Mat> flows_back;
 	vector<Mat> confs;
+
 	vector<Mat> preProsImgs;
 	vector<Mat> newFlows;
 	vector<Mat> newFlows_back;
-	vector<Mat> newConfs;
+	vector<Mat> newConfs;	
+
+	vector<Mat> blurImg;
+	vector<Mat> blur_flows;
+	vector<Mat> blur_flows_back;
+	vector<Mat> blur_confs;
+
 	vector<Mat> combineFlows;
 	vector<Mat> combineConfs;
+	vector<Mat> combineFlows2;
+	vector<Mat> combineConfs2;
 
 	imgsC1.resize(n);
 	flows.resize(n);
 	flows_back.resize(n);
 	confs.resize(n);
+
 	preProsImgs.resize(n);
 	newFlows.resize(n);
 	newFlows_back.resize(n);
-	newConfs.resize(n);
+	newConfs.resize(n);	
+
+	blurImg.resize(n);
+	blur_flows.resize(n);
+	blur_flows_back.resize(n);
+	blur_confs.resize(n);
+
 	combineFlows.resize(n);
 	combineConfs.resize(n);
+	combineFlows2.resize(n);
+	combineConfs2.resize(n);
 
 	cout << "read in images\n";
 	for (int k = 0; k < n; k++) {
-		imgsC1[k] = imread("input/" + test_set + "_0" + int2str(k+1) + ".bmp", CV_LOAD_IMAGE_GRAYSCALE);		
+		imgsC1[k] = imread("input/" + test_set + "_0" + int2str(k+1) + ".bmp", CV_LOAD_IMAGE_GRAYSCALE);
+		GaussianBlur( imgsC1[k], blurImg[k], Size( 11, 11), 1, 1 );
 	}
 	ImgPreProcess(imgsC1, preProsImgs);
 
 	cout << "calculating flows & confidences\n";
 	Ptr<DenseOpticalFlow> OptFlow = createOptFlow_DualTVL1();	
 	for (int k = 0; k < n; k++) {
+		
 		flows[k] = Mat::zeros(imgsC1[0].rows, imgsC1[0].cols, CV_32FC2);
 		flows_back[k] = Mat::zeros(imgsC1[0].rows, imgsC1[0].cols, CV_32FC2);
 		OptFlow->calc(imgsC1[k], imgsC1[0], flows[k]);
@@ -160,12 +254,20 @@ void LinearConstruct_test () {
 		OptFlow->calc(preProsImgs[k], preProsImgs[0], newFlows[k]);
 		OptFlow->calc(preProsImgs[0], preProsImgs[k], newFlows_back[k]);
 		showConfidence (newFlows[k], newFlows_back[k], newConfs[k]);		
+		
 
-		imwrite("output/conf_" + test_set + int2str(k) + "to0.bmp", confs[k]*254);
-		imwrite("output/newConf_" + test_set + int2str(k) + "to0.bmp", newConfs[k]*254);
+		//imwrite("output/conf_" + test_set + int2str(k) + "to0.bmp", confs[k]*254);
+		//imwrite("output/newConf_" + test_set + int2str(k) + "to0.bmp", newConfs[k]*254);
+
+		OptFlow->calc(blurImg[k], blurImg[0], blur_flows[k]);
+		OptFlow->calc(blurImg[0], blurImg[k], blur_flows_back[k]);
+		showConfidence (blur_flows[k], blur_flows_back[k], blur_confs[k]);
 
 	}
-	getBetterFlow(confs, flows, newConfs, newFlows, combineConfs, combineFlows);
+	//getBetterFlow(confs, flows, newConfs, newFlows, combineConfs2, combineFlows2);
+	getBetterFlow(newConfs, newFlows, blur_confs, blur_flows, combineConfs, combineFlows);
+	//getBetterFlow(combineConfs2, combineFlows2, blur_confs, blur_flows, combineConfs, combineFlows);
+
 	for (int k = 0; k < n; k++) {
 		flows[k].resize(0, 0);
 		confs[k].resize(0, 0);
@@ -173,21 +275,48 @@ void LinearConstruct_test () {
 		newConfs[k].resize(0, 0);
 
 		imwrite("output/combineConfs_" + test_set + int2str(k) + "to0.bmp", combineConfs[k]*254);
+		//combineConfs[k] = blur_confs[k];
+		//combineFlows[k] = blur_flows[k];
+
 	}
 
 	
-	Mat PSF = Mat::zeros(3,3,CV_64F);
+	Mat dot = Mat::zeros(5,5,CV_64F);
+	dot.at<double>(2, 2) = 1; 
+
+	Mat PSF = Mat::zeros(5,5,CV_64F);
+	GaussianBlur(dot, PSF, Size( 5, 5), 1, 1, BORDER_REPLICATE);
+
+	cout << PSF;
+
 	Mat BPk = PSF;
 	
+	/*
+	// gaussian [3 3], sigma = 0.5
 	PSF.at<double>(0,0) = 0.0113;
+	PSF.at<double>(0,2) = PSF.at<double>(0,0);
+	PSF.at<double>(2,2) = PSF.at<double>(0,0);
+	PSF.at<double>(2,0) = PSF.at<double>(0,0);
 	PSF.at<double>(0,1) = 0.0838;
-	PSF.at<double>(0,2) = 0.0113;
-	PSF.at<double>(1,0) = 0.0838;
+	PSF.at<double>(1,0) = PSF.at<double>(0,1);
+	PSF.at<double>(1,2) = PSF.at<double>(0,1);
+	PSF.at<double>(2,1) = PSF.at<double>(0,1);
 	PSF.at<double>(1,1) = 0.6193;
-	PSF.at<double>(1,2) = 0.0838;
-	PSF.at<double>(2,0) = 0.0113;
-	PSF.at<double>(2,1) = 0.0838;
-	PSF.at<double>(2,2) = 0.0113;
+	*/
+	/*
+	// gaussian [3 3], sigma = 1;
+	PSF.at<double>(0,0) = 0.0751;
+	PSF.at<double>(0,2) = PSF.at<double>(0,0);
+	PSF.at<double>(2,2) = PSF.at<double>(0,0);
+	PSF.at<double>(2,0) = PSF.at<double>(0,0);
+	PSF.at<double>(0,1) = 0.1238;
+	PSF.at<double>(1,0) = PSF.at<double>(0,1);
+	PSF.at<double>(1,2) = PSF.at<double>(0,1);
+	PSF.at<double>(2,1) = PSF.at<double>(0,1);
+	PSF.at<double>(1,1) = 0.2042;
+	*/
+
+
 
 	Mat HRimg;
 	/*
@@ -212,9 +341,9 @@ void LinearConstruct_test () {
 	
 	imwrite("output/" + test_set + "_LinearConstruct_HR" + int2str(n) + "_CG.bmp", HRimg);
 	
-	writeImgDiff(imread("output/" + test_set + "_LinearConstruct_HR" + int2str(n) + "_CG.bmp", CV_LOAD_IMAGE_GRAYSCALE),
+	/*writeImgDiff(imread("output/" + test_set + "_LinearConstruct_HR" + int2str(n) + "_CG.bmp", CV_LOAD_IMAGE_GRAYSCALE),
 		imread("Origin/" + test_set + "Ori_01.bmp", CV_LOAD_IMAGE_GRAYSCALE),
-		"output/" + test_set + "_OriginLinearConstruct" + int2str(n) + "_Diff.bmp");
+		"output/" + test_set + "_OriginLinearConstruct" + int2str(n) + "_Diff.bmp");*/
 
 	return;
 }

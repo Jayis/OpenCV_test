@@ -12,6 +12,8 @@
 using namespace std;
 using namespace cv;
 
+void test();
+
 void flow2H_test ();
 
 void LinearConstruct_test ();

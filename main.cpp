@@ -6,7 +6,7 @@ using namespace std;
 using namespace cv;
 
 int main() {
-	flow2H_test();
+	LinearConstruct_test();
 
 	system("pause");
 }
