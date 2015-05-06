@@ -248,35 +248,35 @@ void LinearConstruct_test () {
 		OptFlow->calc(imgsC1[k], imgsC1[0], flows[k]);
 		OptFlow->calc(imgsC1[0], imgsC1[k], flows_back[k]);
 		showConfidence (flows[k], flows_back[k], confs[k]);
-
+		/*
 		newFlows[k] = Mat::zeros(imgsC1[0].rows, imgsC1[0].cols, CV_32FC2);
 		newFlows_back[k] = Mat::zeros(imgsC1[0].rows, imgsC1[0].cols, CV_32FC2);
 		OptFlow->calc(preProsImgs[k], preProsImgs[0], newFlows[k]);
 		OptFlow->calc(preProsImgs[0], preProsImgs[k], newFlows_back[k]);
 		showConfidence (newFlows[k], newFlows_back[k], newConfs[k]);		
-		
+		*/
 
 		//imwrite("output/conf_" + test_set + int2str(k) + "to0.bmp", confs[k]*254);
 		//imwrite("output/newConf_" + test_set + int2str(k) + "to0.bmp", newConfs[k]*254);
-
+		/*
 		OptFlow->calc(blurImg[k], blurImg[0], blur_flows[k]);
 		OptFlow->calc(blurImg[0], blurImg[k], blur_flows_back[k]);
 		showConfidence (blur_flows[k], blur_flows_back[k], blur_confs[k]);
-
+		*/
 	}
 	//getBetterFlow(confs, flows, newConfs, newFlows, combineConfs2, combineFlows2);
-	getBetterFlow(newConfs, newFlows, blur_confs, blur_flows, combineConfs, combineFlows);
-	//getBetterFlow(combineConfs2, combineFlows2, blur_confs, blur_flows, combineConfs, combineFlows);
+	//getBetterFlow(newConfs, newFlows, blur_confs, blur_flows, combineConfs, combineFlows);
+	//getBetterFlow(confs, flows, blur_confs, blur_flows, combineConfs, combineFlows);
 
 	for (int k = 0; k < n; k++) {
-		flows[k].resize(0, 0);
-		confs[k].resize(0, 0);
-		newFlows[k].resize(0, 0);
-		newConfs[k].resize(0, 0);
+		//flows[k].resize(0, 0);
+		//confs[k].resize(0, 0);
+		//newFlows[k].resize(0, 0);
+		//newConfs[k].resize(0, 0);
 
-		imwrite("output/combineConfs_" + test_set + int2str(k) + "to0.bmp", combineConfs[k]*254);
-		//combineConfs[k] = blur_confs[k];
-		//combineFlows[k] = blur_flows[k];
+		combineConfs[k] = confs[k];
+		combineFlows[k] = flows[k];
+		//imwrite("output/combineConfs_" + test_set + int2str(k) + "to0.bmp", combineConfs[k]*254);	
 
 	}
 
