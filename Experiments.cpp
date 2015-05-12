@@ -242,27 +242,28 @@ void LinearConstruct_test () {
 	cout << "calculating flows & confidences\n";
 	Ptr<DenseOpticalFlow> OptFlow = createOptFlow_DualTVL1();	
 	for (int k = 0; k < n; k++) {
-		
-		flows[k] = Mat::zeros(imgsC1[0].rows, imgsC1[0].cols, CV_32FC2);
-		flows_back[k] = Mat::zeros(imgsC1[0].rows, imgsC1[0].cols, CV_32FC2);
+		//imwrite("output/ImgPre_" + test_set + int2str(k) + ".bmp", preProsImgs[k]);
+		//imwrite("output/Blur_" + test_set + int2str(k) + ".bmp", blurImg[k]);
+
+		/*
 		OptFlow->calc(imgsC1[k], imgsC1[0], flows[k]);
 		OptFlow->calc(imgsC1[0], imgsC1[k], flows_back[k]);
 		showConfidence (flows[k], flows_back[k], confs[k]);
-		/*
-		newFlows[k] = Mat::zeros(imgsC1[0].rows, imgsC1[0].cols, CV_32FC2);
-		newFlows_back[k] = Mat::zeros(imgsC1[0].rows, imgsC1[0].cols, CV_32FC2);
+		/**/
+		
 		OptFlow->calc(preProsImgs[k], preProsImgs[0], newFlows[k]);
 		OptFlow->calc(preProsImgs[0], preProsImgs[k], newFlows_back[k]);
 		showConfidence (newFlows[k], newFlows_back[k], newConfs[k]);		
-		*/
-
-		//imwrite("output/conf_" + test_set + int2str(k) + "to0.bmp", confs[k]*254);
-		//imwrite("output/newConf_" + test_set + int2str(k) + "to0.bmp", newConfs[k]*254);
+		/**/
 		/*
 		OptFlow->calc(blurImg[k], blurImg[0], blur_flows[k]);
 		OptFlow->calc(blurImg[0], blurImg[k], blur_flows_back[k]);
 		showConfidence (blur_flows[k], blur_flows_back[k], blur_confs[k]);
-		*/
+		/**/
+		
+		//imwrite("output/conf_" + test_set + int2str(k) + "to0.bmp", confs[k]*254);
+		imwrite("output/newConf_" + test_set + int2str(k) + "to0.bmp", newConfs[k]*254);
+		//imwrite("output/blurConf_" + test_set + int2str(k) + "to0.bmp", blur_confs[k]*254);
 	}
 	//getBetterFlow(confs, flows, newConfs, newFlows, combineConfs2, combineFlows2);
 	//getBetterFlow(newConfs, newFlows, blur_confs, blur_flows, combineConfs, combineFlows);
@@ -274,8 +275,8 @@ void LinearConstruct_test () {
 		//newFlows[k].resize(0, 0);
 		//newConfs[k].resize(0, 0);
 
-		combineConfs[k] = confs[k];
-		combineFlows[k] = flows[k];
+		combineConfs[k] = newConfs[k];
+		combineFlows[k] = newFlows[k];
 		//imwrite("output/combineConfs_" + test_set + int2str(k) + "to0.bmp", combineConfs[k]*254);	
 
 	}

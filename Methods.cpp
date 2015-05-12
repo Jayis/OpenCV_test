@@ -449,7 +449,7 @@ void ImgPreProcess (vector<Mat>& LR_imgs, vector<Mat>& output)
 	for (int k = 0; k < LR_imgs.size(); k++) {
 		tmp_max = 0;
 
-		GaussianBlur( LR_imgs[k], tmps[k], Size(3,3), 0, 0, BORDER_DEFAULT );
+		GaussianBlur( LR_imgs[k], tmps[k], Size(3,3), 0.01, 0.01, BORDER_DEFAULT );
 		Sobel( LR_imgs[k], Gx[k], CV_64F, 1, 0, 3, 1, 0, BORDER_DEFAULT );
 		Sobel( LR_imgs[k], Gy[k], CV_64F, 0, 1, 3, 1, 0, BORDER_DEFAULT );
 
