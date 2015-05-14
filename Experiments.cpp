@@ -294,7 +294,7 @@ void flow2H_test () {
 }
 
 void LinearConstruct_test () {
-	String test_set = "res256";	
+	String test_set = "shop2000";	
 	int n = 4;
 
 	vector<Mat> imgsC1;
@@ -342,7 +342,7 @@ void LinearConstruct_test () {
 		imgsC1[k] = imread("input/" + test_set + "_0" + int2str(k+1) + ".bmp", CV_LOAD_IMAGE_GRAYSCALE);
 		GaussianBlur( imgsC1[k], blurImg[k], Size( 11, 11), 1, 1 );
 	}
-	ImgPreProcess(imgsC1, preProsImgs);
+	//ImgPreProcess(imgsC1, preProsImgs);
 
 	cout << "calculating flows & confidences\n";
 	Ptr<DenseOpticalFlow> OptFlow = createOptFlow_DualTVL1();	
@@ -355,20 +355,20 @@ void LinearConstruct_test () {
 		OptFlow->calc(imgsC1[0], imgsC1[k], flows_back[k]);
 		showConfidence (flows[k], flows_back[k], confs[k]);
 		/**/
-		
+		/*
 		OptFlow->calc(preProsImgs[k], preProsImgs[0], newFlows[k]);
 		OptFlow->calc(preProsImgs[0], preProsImgs[k], newFlows_back[k]);
 		showConfidence (newFlows[k], newFlows_back[k], newConfs[k]);		
 		/**/
-		/*
+		
 		OptFlow->calc(blurImg[k], blurImg[0], blur_flows[k]);
 		OptFlow->calc(blurImg[0], blurImg[k], blur_flows_back[k]);
 		showConfidence (blur_flows[k], blur_flows_back[k], blur_confs[k]);
 		/**/
 		
 		//imwrite("output/conf_" + test_set + int2str(k) + "to0.bmp", confs[k]*254);
-		imwrite("output/newConf_" + test_set + int2str(k) + "to0.bmp", newConfs[k]*254);
-		//imwrite("output/blurConf_" + test_set + int2str(k) + "to0.bmp", blur_confs[k]*254);
+		//imwrite("output/newConf_" + test_set + int2str(k) + "to0.bmp", newConfs[k]*254);
+		imwrite("output/blurConf_" + test_set + int2str(k) + "to0.bmp", blur_confs[k]*254);
 	}
 	//getBetterFlow(confs, flows, newConfs, newFlows, combineConfs2, combineFlows2);
 	//getBetterFlow(newConfs, newFlows, blur_confs, blur_flows, combineConfs, combineFlows);
@@ -380,8 +380,8 @@ void LinearConstruct_test () {
 		//newFlows[k].resize(0, 0);
 		//newConfs[k].resize(0, 0);
 
-		combineConfs[k] = newConfs[k];
-		combineFlows[k] = newFlows[k];
+		combineConfs[k] = blur_confs[k];
+		combineFlows[k] = blur_flows[k];
 		//imwrite("output/combineConfs_" + test_set + int2str(k) + "to0.bmp", combineConfs[k]*254);	
 
 	}
