@@ -1,5 +1,110 @@
 #include "Experiments.h"
 
+void exampleBased_test ()
+{
+	String test_set = "res256";
+
+	Mat LR_img_tmp = imread("input/" + test_set + "_01.bmp", CV_LOAD_IMAGE_GRAYSCALE);
+	Mat LR_img;
+	LR_img_tmp.convertTo(LR_img, CV_64F);
+
+	double scale = 2;
+	int LR_rows = LR_img.rows, LR_cols = LR_img.cols;
+	int HR_rows = LR_rows * scale, HR_cols = LR_cols * scale;
+	int Reconstruct_w = 6, Reconstruct_h = 6;
+
+	Mat HR_img_tmp;
+	//resize(LR_img, HR_img, Size(HR_rows, HR_cols));
+	//----BP
+	Mat HR_BP = imread("input/HR_BP.bmp", CV_LOAD_IMAGE_GRAYSCALE);
+	/*
+	vector<Mat> imgs, flows;
+	imgs.push_back(LR_img);
+	Mat noFlow = Mat::zeros(LR_rows, LR_cols, CV_32FC2);
+	flows.push_back(noFlow);
+
+	Mat dot = Mat::zeros(5,5,CV_64F);
+	dot.at<double>(2, 2) = 1; 
+	Mat PSF = Mat::zeros(5,5,CV_64F);
+	GaussianBlur(dot, PSF, Size( 5, 5), 1, 1, BORDER_REPLICATE);
+	Mat BPk = PSF;
+	TermCriteria BPstop;
+	BPstop.type = TermCriteria::COUNT + TermCriteria::EPS;
+	BPstop.maxCount = 20;
+	BPstop.epsilon = 0.1;
+
+	BackProjection ( HR_BP, scale, imgs, flows, PSF, BPk, BPstop );
+	imwrite("output/HR_BP.bmp", HR_BP);
+	*/
+	HR_BP.copyTo(HR_img_tmp);
+	
+	//----BP
+	Mat HR_preset = imread("input/res256_LinearConstruct_HR4_CG_blurGaussian05.bmp", CV_LOAD_IMAGE_GRAYSCALE);
+	Mat HR_doneMask = Mat::zeros(HR_rows, HR_cols, CV_8U);
+
+	int preset_x = 128, preset_y = 128;
+	int preset_h = 256, preset_w = 256;
+	Rect presetRegion= Rect(preset_x, preset_y, preset_w, preset_h);
+	HR_preset(presetRegion).copyTo(HR_img_tmp(presetRegion));
+	HR_doneMask(presetRegion) = HR_doneMask(presetRegion) + 1;
+	Mat HR_img;
+	HR_img_tmp.convertTo(HR_img, CV_64F);
+	imwrite("output/HR_preset.bmp", HR_img);
+
+	Mat HR_doingMask = Mat::zeros(HR_rows, HR_cols, CV_8U);
+	
+	bool constructComplete = false;
+	while (!constructComplete) {
+		constructComplete = true;
+
+		for (int i = Reconstruct_h; i < HR_rows-Reconstruct_h; i+=Reconstruct_h) for (int j = Reconstruct_w; j < HR_cols-Reconstruct_w; j+=Reconstruct_w) {
+			if (HR_doneMask.at<uchar>(i, j) != 0)
+				continue;
+
+			constructComplete = false;
+			int HR_exist[4] = {0};
+			bool anyHRnear = false;
+			if (HR_doneMask.at<uchar>(i-Reconstruct_h, j) != 0) { // up
+				HR_exist[0] = 1;
+				anyHRnear = true;
+			}
+			if (HR_doneMask.at<uchar>(i+Reconstruct_h, j) != 0) { // down
+				HR_exist[1] = 1;
+				anyHRnear = true;
+			}
+			if (HR_doneMask.at<uchar>(i, j-Reconstruct_w) != 0) { // left
+				HR_exist[2] = 1;
+				anyHRnear = true;
+			}
+			if (HR_doneMask.at<uchar>(i, j+Reconstruct_w) != 0) { // right
+				HR_exist[3] = 1;
+				anyHRnear = true;
+			}
+
+			if (anyHRnear) {
+				cout << "fix" << endl;
+				Rect currentRect = Rect(j, i, Reconstruct_w, Reconstruct_h);
+				cout << i << ", " <<  j << endl;
+				cout << HR_exist[0] <<  HR_exist[1] <<HR_exist[2] <<HR_exist[3] <<endl;
+				HR_doingMask(currentRect) = 1;
+				imwrite("output/doneMask.bmp", HR_doneMask*128);
+				imwrite("output/doingMask.bmp", HR_doingMask*128);
+				Mat selectPatch;
+				mySearch(selectPatch, LR_img, HR_img, currentRect, HR_exist, 1);
+				cout << "fix-done" << endl;
+				selectPatch.copyTo(HR_img(currentRect));
+				imwrite("output/HR_PROGRESS.bmp", HR_img);
+			}		
+
+		}
+
+		HR_doneMask = HR_doneMask + HR_doingMask;
+		HR_doingMask = Mat::zeros(HR_rows, HR_cols, CV_8U);
+	}
+	imwrite("output/HR_constructed.bmp", HR_img);
+	/**/
+}
+
 void test()
 {
 	String test_set = "res256";

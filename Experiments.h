@@ -8,9 +8,12 @@
 #include "FlexISP_Reconstruction.h"
 #include "BackProjection.h"
 #include "Methods.h"
+#include "ExampleBased_Reconstruction.h"
 
 using namespace std;
 using namespace cv;
+
+void exampleBased_test ();
 
 void test();
 
