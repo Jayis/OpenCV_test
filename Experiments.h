@@ -12,9 +12,12 @@
 #include "Methods.h"
 #include "ExampleBased_Reconstruction.h"
 #include "Mod_tv1flow.h"
+#include "SymmConfOptFlowTV1.h"
 
 using namespace std;
 using namespace cv;
+
+void symmetricOptFlow_test();
 
 void exampleBased_test ();
 

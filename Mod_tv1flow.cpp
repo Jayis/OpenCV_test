@@ -165,6 +165,20 @@ void Mod_OpticalFlowDual_TVL1::getInterpFlowSpecScale(int s, Mat& output)
     merge(uxy, 2, output);
 }
 
+void Mod_OpticalFlowDual_TVL1::setFlowForNextScale(int s, Mat& flow)
+{
+	Mat_<float> mv[2];
+	split(flow, mv);
+
+	// zoom the optical flow for the next finer scale
+	resize(mv[0], u1s[s - 1], I0s[s - 1].size());
+	resize(mv[1], u2s[s - 1], I0s[s - 1].size());
+	
+	// scale the optical flow with the appropriate zoom factor
+	multiply(u1s[s - 1], Scalar::all(2), u1s[s - 1]);
+	multiply(u2s[s - 1], Scalar::all(2), u2s[s - 1]);
+}
+
 ////////////////////////////////////////////////////////////
 // buildFlowMap
 
@@ -829,3 +843,4 @@ CV_INIT_ALGORITHM(Mod_OpticalFlowDual_TVL1, "DenseOpticalFlow.DualTVL1",
                   obj.info()->addParam(obj, "iterations", obj.iterations, false, 0, 0,
                                        "Stopping criterion iterations number used in the numerical scheme");
                   obj.info()->addParam(obj, "useInitialFlow", obj.useInitialFlow))
+				  /**/

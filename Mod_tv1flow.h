@@ -25,6 +25,7 @@ public:
     void procSpecScale(int s);
 	void getFlowSpecScale(int s, Mat& output);
 	void getInterpFlowSpecScale(int s, Mat& output);
+	void setFlowForNextScale(int s, Mat& flow);
 
     AlgorithmInfo* info() const;
 

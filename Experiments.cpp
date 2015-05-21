@@ -1,5 +1,71 @@
 #include "Experiments.h"
 
+void symmetricOptFlow_test() {
+	String test_set = "shake2000";	
+	int n = 4;
+
+	vector<Mat> imgsC1;
+	vector<Mat> flows;
+	vector<Mat> flows_back;
+	vector<Mat> confs;
+
+	imgsC1.resize(n);
+	flows.resize(n);
+	flows_back.resize(n);
+	confs.resize(n);
+
+	cout << "read in images\n";
+	for (int k = 0; k < n; k++) {
+		imgsC1[k] = imread("input/" + test_set + "_0" + int2str(k+1) + ".bmp", CV_LOAD_IMAGE_GRAYSCALE);
+	}
+
+	for (int k = 0; k < n; k++) {
+		cout << "calculating symmetric flows " + int2str(k) + "\n";
+
+		SymmConfOptFlow_calc* symmOptFlow = new SymmConfOptFlow_calc;
+		symmOptFlow->calc(imgsC1[k], imgsC1[0], flows[k], flows_back[k], confs[k]);
+
+		imwrite("output/symmConf" + test_set + int2str(k) + "to0.bmp", confs[k]*255);
+	}
+
+	Mat dot = Mat::zeros(5,5,CV_64F);
+	dot.at<double>(2, 2) = 1; 
+
+	Mat PSF = Mat::zeros(5,5,CV_64F);
+	GaussianBlur(dot, PSF, Size( 5, 5), 0.7, 0.7, BORDER_REPLICATE);
+
+	Mat BPk = PSF;
+
+	Mat HRimg;
+	/*
+	TermCriteria BPstop;
+	BPstop.type = TermCriteria::COUNT + TermCriteria::EPS;
+	BPstop.maxCount = 10;
+	BPstop.epsilon = 1;
+
+	vector<Mat> bpimg, bpflows;
+	bpimg.push_back(imgsC1[3]);
+	bpflows.push_back(combineFlows[3]);
+
+	BackProjection_Confidence(HRimg, 2, bpimg, bpflows, PSF, BPk, BPstop, confs);
+	*/
+	DivideToBlocksToConstruct( imgsC1, flows, confs, PSF, 2, HRimg);
+	/*
+	LinearConstructor linearConstructor( imgsC1, combineFlows, combineConfs, 2, PSF);
+	linearConstructor.addRegularization_grad2norm(0.05);
+	linearConstructor.solve_byCG();
+	linearConstructor.output(HRimg);
+	/**/
+	
+	imwrite("output/" + test_set + "_LinearConstruct_HR" + int2str(n) + "_SymmConf.bmp", HRimg);
+	
+	/*writeImgDiff(imread("output/" + test_set + "_LinearConstruct_HR" + int2str(n) + "_CG.bmp", CV_LOAD_IMAGE_GRAYSCALE),
+		imread("Origin/" + test_set + "Ori_01.bmp", CV_LOAD_IMAGE_GRAYSCALE),
+		"output/" + test_set + "_OriginLinearConstruct" + int2str(n) + "_Diff.bmp");*/
+
+	return;
+}
+
 void exampleBased_test ()
 {
 	String test_set = "res256";
@@ -372,9 +438,7 @@ void LinearConstruct_test () {
 		// if we want to use initial flow, need to pre-allocate
 		//blur_flows[k] = Mat::zeros(imgsC1[k].rows, imgsC1[k].cols, CV_32FC2);
 		//blur_flows_back[k] = Mat::zeros(imgsC1[k].rows, imgsC1[k].cols, CV_32FC2);
-
-		
-
+		/*
 		OptFlow->calc(blurImg[k], blurImg[0], blur_flows[k]);	
 		OptFlow->calc(blurImg[0], blurImg[k], blur_flows_back[k]);
 		showConfidence (blur_flows[k], blur_flows_back[k], blur_confs[k]);
@@ -384,9 +448,9 @@ void LinearConstruct_test () {
 		cout << "flow" << int2str(k) << ": " << difftime(time1, time0) << endl;
 		time0 = time1;
 
-		//imwrite("output/conf_" + test_set + int2str(k) + "to0.bmp", confs[k]*254);
+		imwrite("output/conf_" + test_set + int2str(k) + "to0.bmp", confs[k]*254);
 		//imwrite("output/newConf_" + test_set + int2str(k) + "to0.bmp", newConfs[k]*254);
-		imwrite("output/blurConf_" + test_set + int2str(k) + "to0.bmp", blur_confs[k]*254);
+		//imwrite("output/blurConf_" + test_set + int2str(k) + "to0.bmp", blur_confs[k]*254);
 		
 	}
 	//getBetterFlow(confs, flows, newConfs, newFlows, combineConfs2, combineFlows2);
@@ -395,6 +459,7 @@ void LinearConstruct_test () {
 
 	
 	for (int k = 0; k < n; k++) {
+		time(&time0);
 
 		//calcOpticalFlowFarneback(imgsC1[k], imgsC1[0], flows[k], 0.5, 5, 3, 500, 5, 1.1, OPTFLOW_FARNEBACK_GAUSSIAN);
 		//calcOpticalFlowFarneback(imgsC1[0], imgsC1[k], flows_back[k], 0.5, 5, 3, 500, 5, 1.1, OPTFLOW_FARNEBACK_GAUSSIAN);
@@ -411,23 +476,18 @@ void LinearConstruct_test () {
 		showConfidence (newFlows[k], newFlows_back[k], newConfs[k]);		
 		/**/
 		
-		time(&time0);
-
 		OptFlow->calc(blurImg[k], blurImg[0], blur_flows[k]);
-
-		time(&time1);
-		cout << "flow" << int2str(k) << ": " << difftime(time1, time0) << endl;
-		time0 = time1;
-
 		OptFlow->calc(blurImg[0], blurImg[k], blur_flows_back[k]);
 		showConfidence (blur_flows[k], blur_flows_back[k], blur_confs[k]);
 		/**/
 
 		//imwrite("output/conf_" + test_set + int2str(k) + "to0.bmp", confs[k]*254);
 		//imwrite("output/newConf_" + test_set + int2str(k) + "to0.bmp", newConfs[k]*254);
-		imwrite("output/blurConf2_" + test_set + int2str(k) + "to0.bmp", blur_confs[k]*254);
-
+		//imwrite("output/blurConf2_" + test_set + int2str(k) + "to0.bmp", blur_confs[k]*254);
 		
+		time(&time1);
+		cout << "flow" << int2str(k) << ": " << difftime(time1, time0) << endl;
+		time0 = time1;
 	}
 	
 	for (int k = 0; k < n; k++) {
