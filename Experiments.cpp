@@ -294,7 +294,7 @@ void flow2H_test () {
 }
 
 void LinearConstruct_test () {
-	String test_set = "shop2000";	
+	String test_set = "global_align";	
 	int n = 4;
 
 	vector<Mat> imgsC1;
@@ -342,14 +342,64 @@ void LinearConstruct_test () {
 		imgsC1[k] = imread("input/" + test_set + "_0" + int2str(k+1) + ".bmp", CV_LOAD_IMAGE_GRAYSCALE);
 		GaussianBlur( imgsC1[k], blurImg[k], Size( 11, 11), 1, 1 );
 	}
-	//ImgPreProcess(imgsC1, preProsImgs);
+	ImgPreProcess(imgsC1, preProsImgs);
 
 	cout << "calculating flows & confidences\n";
-	Ptr<DenseOpticalFlow> OptFlow = createOptFlow_DualTVL1();	
+	//Ptr<DenseOpticalFlow> OptFlow = createOptFlow_DualTVL1();
+	Mod_OpticalFlowDual_TVL1* OptFlow = new Mod_OpticalFlowDual_TVL1;
+	//OptFlow->setBool("useInitialFlow", true);
+	time_t time1, time0;
+
 	for (int k = 0; k < n; k++) {
 		//imwrite("output/ImgPre_" + test_set + int2str(k) + ".bmp", preProsImgs[k]);
 		//imwrite("output/Blur_" + test_set + int2str(k) + ".bmp", blurImg[k]);
 
+		//calcOpticalFlowFarneback(imgsC1[k], imgsC1[0], flows[k], 0.5, 5, 3, 500, 5, 1.1, OPTFLOW_FARNEBACK_GAUSSIAN);
+		//calcOpticalFlowFarneback(imgsC1[0], imgsC1[k], flows_back[k], 0.5, 5, 3, 500, 5, 1.1, OPTFLOW_FARNEBACK_GAUSSIAN);
+		//calcOpticalFlowSF(imgsC1[k], imgsC1[0], flows[k], 5, 3, 10);
+		//calcOpticalFlowSF(imgsC1[0], imgsC1[k], flows_back[k], 5, 3, 10);
+		time(&time0);
+		OptFlow->calc(imgsC1[k], imgsC1[0], flows[k]);
+		OptFlow->calc(imgsC1[0], imgsC1[k], flows_back[k]);
+		showConfidence (flows[k], flows_back[k], confs[k]);
+		/**/
+		/*
+		OptFlow->calc(preProsImgs[k], preProsImgs[0], newFlows[k]);
+		OptFlow->calc(preProsImgs[0], preProsImgs[k], newFlows_back[k]);
+		showConfidence (newFlows[k], newFlows_back[k], newConfs[k]);		
+		/**/
+		
+		// if we want to use initial flow, need to pre-allocate
+		//blur_flows[k] = Mat::zeros(imgsC1[k].rows, imgsC1[k].cols, CV_32FC2);
+		//blur_flows_back[k] = Mat::zeros(imgsC1[k].rows, imgsC1[k].cols, CV_32FC2);
+
+		
+
+		OptFlow->calc(blurImg[k], blurImg[0], blur_flows[k]);	
+		OptFlow->calc(blurImg[0], blurImg[k], blur_flows_back[k]);
+		showConfidence (blur_flows[k], blur_flows_back[k], blur_confs[k]);
+		/**/
+
+		time(&time1);
+		cout << "flow" << int2str(k) << ": " << difftime(time1, time0) << endl;
+		time0 = time1;
+
+		//imwrite("output/conf_" + test_set + int2str(k) + "to0.bmp", confs[k]*254);
+		//imwrite("output/newConf_" + test_set + int2str(k) + "to0.bmp", newConfs[k]*254);
+		imwrite("output/blurConf_" + test_set + int2str(k) + "to0.bmp", blur_confs[k]*254);
+		
+	}
+	//getBetterFlow(confs, flows, newConfs, newFlows, combineConfs2, combineFlows2);
+	//getBetterFlow(newConfs, newFlows, blur_confs, blur_flows, combineConfs, combineFlows);
+	//getBetterFlow(confs, flows, blur_confs, blur_flows, combineConfs, combineFlows);
+
+	
+	for (int k = 0; k < n; k++) {
+
+		//calcOpticalFlowFarneback(imgsC1[k], imgsC1[0], flows[k], 0.5, 5, 3, 500, 5, 1.1, OPTFLOW_FARNEBACK_GAUSSIAN);
+		//calcOpticalFlowFarneback(imgsC1[0], imgsC1[k], flows_back[k], 0.5, 5, 3, 500, 5, 1.1, OPTFLOW_FARNEBACK_GAUSSIAN);
+		//calcOpticalFlowSF(imgsC1[k], imgsC1[0], flows[k], 5, 3, 10);
+		//calcOpticalFlowSF(imgsC1[0], imgsC1[k], flows_back[k], 5, 3, 10);
 		/*
 		OptFlow->calc(imgsC1[k], imgsC1[0], flows[k]);
 		OptFlow->calc(imgsC1[0], imgsC1[k], flows_back[k]);
@@ -361,27 +411,33 @@ void LinearConstruct_test () {
 		showConfidence (newFlows[k], newFlows_back[k], newConfs[k]);		
 		/**/
 		
+		time(&time0);
+
 		OptFlow->calc(blurImg[k], blurImg[0], blur_flows[k]);
+
+		time(&time1);
+		cout << "flow" << int2str(k) << ": " << difftime(time1, time0) << endl;
+		time0 = time1;
+
 		OptFlow->calc(blurImg[0], blurImg[k], blur_flows_back[k]);
 		showConfidence (blur_flows[k], blur_flows_back[k], blur_confs[k]);
 		/**/
-		
+
 		//imwrite("output/conf_" + test_set + int2str(k) + "to0.bmp", confs[k]*254);
 		//imwrite("output/newConf_" + test_set + int2str(k) + "to0.bmp", newConfs[k]*254);
-		imwrite("output/blurConf_" + test_set + int2str(k) + "to0.bmp", blur_confs[k]*254);
-	}
-	//getBetterFlow(confs, flows, newConfs, newFlows, combineConfs2, combineFlows2);
-	//getBetterFlow(newConfs, newFlows, blur_confs, blur_flows, combineConfs, combineFlows);
-	//getBetterFlow(confs, flows, blur_confs, blur_flows, combineConfs, combineFlows);
+		imwrite("output/blurConf2_" + test_set + int2str(k) + "to0.bmp", blur_confs[k]*254);
 
+		
+	}
+	
 	for (int k = 0; k < n; k++) {
 		//flows[k].resize(0, 0);
 		//confs[k].resize(0, 0);
 		//newFlows[k].resize(0, 0);
 		//newConfs[k].resize(0, 0);
 
-		combineConfs[k] = blur_confs[k];
-		combineFlows[k] = blur_flows[k];
+		//combineConfs[k] = blur_confs[k];
+		//combineFlows[k] = blur_flows[k];
 		//imwrite("output/combineConfs_" + test_set + int2str(k) + "to0.bmp", combineConfs[k]*254);	
 
 	}
@@ -391,9 +447,7 @@ void LinearConstruct_test () {
 	dot.at<double>(2, 2) = 1; 
 
 	Mat PSF = Mat::zeros(5,5,CV_64F);
-	GaussianBlur(dot, PSF, Size( 5, 5), 1, 1, BORDER_REPLICATE);
-
-	cout << PSF;
+	GaussianBlur(dot, PSF, Size( 5, 5), 0.7, 0.7, BORDER_REPLICATE);
 
 	Mat BPk = PSF;
 	
@@ -437,7 +491,7 @@ void LinearConstruct_test () {
 
 	BackProjection_Confidence(HRimg, 2, bpimg, bpflows, PSF, BPk, BPstop, confs);
 	*/
-	DivideToBlocksToConstruct( imgsC1, combineFlows, combineConfs, PSF, 2, HRimg);
+	//DivideToBlocksToConstruct( imgsC1, combineFlows, combineConfs, PSF, 2, HRimg);
 	/*
 	LinearConstructor linearConstructor( imgsC1, combineFlows, combineConfs, 2, PSF);
 	linearConstructor.addRegularization_grad2norm(0.05);
@@ -445,7 +499,7 @@ void LinearConstruct_test () {
 	linearConstructor.output(HRimg);
 	/**/
 	
-	imwrite("output/" + test_set + "_LinearConstruct_HR" + int2str(n) + "_CG.bmp", HRimg);
+	//imwrite("output/" + test_set + "_LinearConstruct_HR" + int2str(n) + "_CG.bmp", HRimg);
 	
 	/*writeImgDiff(imread("output/" + test_set + "_LinearConstruct_HR" + int2str(n) + "_CG.bmp", CV_LOAD_IMAGE_GRAYSCALE),
 		imread("Origin/" + test_set + "Ori_01.bmp", CV_LOAD_IMAGE_GRAYSCALE),

@@ -4,11 +4,14 @@
 #include <opencv2\features2d\features2d.hpp>
 #include <opencv2\nonfree\features2d.hpp>
 
+#include <time.h>
+
 #include "Linear_Reconstruction.h"
 #include "FlexISP_Reconstruction.h"
 #include "BackProjection.h"
 #include "Methods.h"
 #include "ExampleBased_Reconstruction.h"
+#include "Mod_tv1flow.h"
 
 using namespace std;
 using namespace cv;
