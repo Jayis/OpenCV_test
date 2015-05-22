@@ -1,8 +1,14 @@
 #pragma once
 
+#include <opencv2\core\core.hpp>
+
 #include <vector>
+#include <iostream>
+
+#include "Macros.h"
 
 using namespace std;
+using namespace cv;
 
 class Pixel {
 public:
@@ -21,7 +27,9 @@ public:
 
 	int i, j;
 	double hBP_sum;
-	vector<Influenced_Pixel> influenced_pixels;
+	//vector<Influenced_Pixel> influenced_pixels;
+	int influence_link_start;
+	int influence_link_cnt;
 };
 
 class LR_Pixel : public Pixel {
@@ -32,19 +40,25 @@ public:
 
 	double confidence;
 	double perception;
-	vector<Perception_Pixel> perception_pixels;
+	//vector<Perception_Pixel> perception_pixels;
+	int perception_link_start;
+	int perception_link_cnt;
 };
 
 class Influenced_Pixel {
 public:
 	double hBP;
 	LR_Pixel* pixel;
+	int lr_idx;
+	int hr_idx;
 };
 
 class Perception_Pixel {
 public:
 	double hPSF;
 	HR_Pixel* pixel;
+	int lr_idx;
+	int hr_idx;
 };
 
 class HR_Pixel_Array {
@@ -53,10 +67,11 @@ public:
 	~HR_Pixel_Array();
 
 	HR_Pixel& access(int i, int j);
+	HR_Pixel& access(int idx);
 
-private:
 	int HR_rows, HR_cols;
 	int HR_pixelCount;
+private:
 	HR_Pixel* hr_pixels;
 };
 
@@ -66,12 +81,27 @@ public:
 	~LR_Pixel_Array();
 
 	LR_Pixel& access(int k, int i, int j);
-
-private:
+	LR_Pixel& access(int idx);
 	int LR_imgCount;
 	int LR_pixelCount;
 	int LR_rows, LR_cols;
+private:
 	LR_Pixel* lr_pixels;
+};
+
+class InfluenceRelation {
+public:
+	InfluenceRelation(vector<Mat>& imgs,
+							vector<Mat>& flows,
+							LR_Pixel_Array* LR_pixels,
+							HR_Pixel_Array*  HR_pixels,
+							double scale,
+							Mat& super_PSF,
+							Mat& super_BPk,
+							double interp_scale);
+
+	vector<Influenced_Pixel> influence_links;
+	vector<Perception_Pixel> perception_links;
 };
 
 //-----SparseMat

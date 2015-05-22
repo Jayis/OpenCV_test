@@ -7,7 +7,7 @@
 #include <time.h>
 
 #include "Linear_Reconstruction.h"
-#include "FlexISP_Reconstruction.h"
+//#include "FlexISP_Reconstruction.h" // i've remove it from project, for convenient, since this one is never done
 #include "BackProjection.h"
 #include "Methods.h"
 #include "ExampleBased_Reconstruction.h"

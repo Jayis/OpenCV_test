@@ -80,3 +80,9 @@ void SymmConfOptFlow_calc::calc(InputArray _I0, InputArray _I1, InputOutputArray
 	flows_back[0].copyTo(_flow_back);
 	confs[0].copyTo(_conf);
 }
+
+SymmConfOptFlow_calc::~SymmConfOptFlow_calc()
+{
+	delete OptFlow;
+	delete OptFlow_back;
+}

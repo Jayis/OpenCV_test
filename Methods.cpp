@@ -1,10 +1,11 @@
 #include "Methods.h"
 
 // BP
+/*
 void formInfluenceRelation (vector<Mat>& imgs,
 							vector<Mat>& flows,
-							vector < vector < vector <LR_Pixel> > >& LR_pixels,
-							vector < vector <HR_Pixel> >&  HR_pixels,
+							LR_Pixel_Array* LR_pixels,
+							HR_Pixel_Array*  HR_pixels,
 							double scale,
 							Mat& super_PSF,
 							Mat& super_BPk,
@@ -26,10 +27,8 @@ void formInfluenceRelation (vector<Mat>& imgs,
 
 	double pos_x, pos_y, bucket_center_x, bucket_center_y, dist_x, dist_y, dx, dy, offset_x, offset_y;;
 	int bucket_idx_i, bucket_idx_j, super_offset_x, super_offset_y;
-
 	
-
-	// star record
+	// start record
 	// for each image
 	for (k = 0; k < imgs.size(); k++) {
 		// for each pixel
@@ -39,9 +38,9 @@ void formInfluenceRelation (vector<Mat>& imgs,
 				pos_x = (j + tmp_flow[0] + 0.5) * scale;
 				pos_y = (i + tmp_flow[1] + 0.5 ) * scale;
 
-				LR_pixels[k][i][j].val = (double)imgs[k].at<uchar>(i,j);
-				LR_pixels[k][i][j].pos_x = pos_x;
-				LR_pixels[k][i][j].pos_y = pos_y;
+				LR_pixels->access(k, i, j).val = (double)imgs[k].at<uchar>(i,j);
+				LR_pixels->access(k, i, j).pos_x = pos_x;
+				LR_pixels->access(k, i, j).pos_y = pos_y;
 
 				// add to those buckets within radius
 				// for each possible bucket
@@ -64,7 +63,7 @@ void formInfluenceRelation (vector<Mat>& imgs,
 
 						// create a influence relation
 						Influenced_Pixel tmp_pix;
-						tmp_pix.pixel = &(LR_pixels[k][i][j]);
+						tmp_pix.pixel = &(LR_pixels->access(k, i, j));
 						//----- hbp
 						offset_x = (dx) + BPk_radius_x + 0.5;
 						offset_y = (dy) + BPk_radius_y + 0.5;
@@ -75,12 +74,12 @@ void formInfluenceRelation (vector<Mat>& imgs,
 						super_offset_y = offset_y * interp_scale;
 						tmp_pix.hBP = super_BPk.at<double>(super_offset_x, super_offset_y);
 						// add to bucket
-						HR_pixels[ bucket_idx_i ][ bucket_idx_j ].influenced_pixels.push_back( tmp_pix );
-						HR_pixels[ bucket_idx_i ][ bucket_idx_j ].hBP_sum += tmp_pix.hBP;
+						HR_pixels->access( bucket_idx_i, bucket_idx_j).influenced_pixels.push_back( tmp_pix );
+						HR_pixels->access( bucket_idx_i, bucket_idx_j).hBP_sum += tmp_pix.hBP;
 
 						// create a perception relation
 						Perception_Pixel tmp_pix2;
-						tmp_pix2.pixel = &(HR_pixels[ bucket_idx_i ][ bucket_idx_j ]);
+						tmp_pix2.pixel = &(HR_pixels->access( bucket_idx_i, bucket_idx_j));
 						// ----- hpsf
 						offset_x = (dx) + PSF_radius_x + 0.5;
 						offset_y = (dy) + PSF_radius_y + 0.5;
@@ -90,7 +89,7 @@ void formInfluenceRelation (vector<Mat>& imgs,
 						super_offset_y = offset_y * interp_scale;
 						tmp_pix2.hPSF = super_PSF.at<double>(super_offset_x, super_offset_y);
 
-						LR_pixels[k][i][j].perception_pixels.push_back(tmp_pix2);
+						LR_pixels->access(k, i, j).perception_pixels.push_back(tmp_pix2);
 					}
 				}
 			}
@@ -98,6 +97,7 @@ void formInfluenceRelation (vector<Mat>& imgs,
 	}
 
 }
+*/
 
 void preInterpolation ( Mat& PSF, Mat& super_PSF, double PSF_scale )
 {
@@ -185,7 +185,7 @@ void HR_to_LR ( Mat& HRimg, Mat& LRimg, double scale, Mat& PSF, bool is_super_PS
 	}
 }
 
-void HR_to_LR_percetion ( Mat& HRimg, vector < vector < vector <LR_Pixel> > >& LR_pixels, double scale, Mat& PSF, bool is_super_PSF, double PSF_scale )
+void HR_to_LR_percetion ( Mat& HRimg, LR_Pixel_Array& LR_pixels, InfluenceRelation& relations, Mat& PSF, bool is_super_PSF, double PSF_scale )
 {
 
 	int PSF_radius_x, PSF_radius_y;
@@ -212,17 +212,29 @@ void HR_to_LR_percetion ( Mat& HRimg, vector < vector < vector <LR_Pixel> > >& L
 	double offset_x, offset_y, dist_x, dist_y;
 	int super_offset_x, super_offset_y;
 
-	for (int k = 0; k < LR_pixels.size(); k++) {
-		for (int i = 0; i < LR_pixels[k].size(); i++) {
-			for (int j = 0; j < LR_pixels[k][i].size(); j++) {
-				LR_pixels[k][i][j].perception = 0;
+	for (int k = 0; k < LR_pixels.LR_imgCount; k++) {
+		for (int i = 0; i < LR_pixels.LR_rows; i++) {
+			for (int j = 0; j < LR_pixels.LR_cols; j++) {
+				LR_Pixel& cur_LR_Pixel = LR_pixels.access(k, i, j);
 
+				cur_LR_Pixel.perception = 0;
+
+				/*
 				pos_y = LR_pixels[k][i][j].pos_y;
 				pos_x = LR_pixels[k][i][j].pos_x;
 
 				locate_pixel_i = pos_y;
 				locate_pixel_j = pos_x;
+				*/
 
+				for (int t = 0; t < cur_LR_Pixel.perception_link_cnt; t++) {
+					Perception_Pixel& cur_perception_pix = relations.perception_links[cur_LR_Pixel.perception_link_start + t];
+					cur_LR_Pixel.perception +=
+						cur_perception_pix.hPSF *
+						HRimg.at<double>(cur_perception_pix.pixel->i, cur_perception_pix.pixel->j);
+				}
+
+				/*
 				// for all posiible neighbor pixel
 				for (int y = -PSF_radius_y-1; y < PSF_radius_y+3; y++ ) {
 					for (int x = -PSF_radius_x-1; x < PSF_radius_x+3; x++) {
@@ -256,11 +268,14 @@ void HR_to_LR_percetion ( Mat& HRimg, vector < vector < vector <LR_Pixel> > >& L
 
 						LR_pixels[k][i][j].perception += super_PSF.at<double>( super_offset_y, super_offset_x ) * (HRimg.at<double>(cur_pix_i, cur_pix_j)  );
 					}
+					
 				}
+				*/
 
 			}
 		}
 	}
+	
 }
 /**/
 // OptFlow
@@ -330,13 +345,13 @@ void showConfidence_new (Mat& flow_forward, Mat& flow_backward, Mat& confidence)
 
 void showConfidence (Mat& flow_forward, Mat& flow_backward, Mat& confidence)
 {
-	// use CV_32FC2
+	// use CV_64FC2
 
 	confidence = Mat::zeros(flow_forward.rows, flow_forward.cols, CV_64F);
 
 	int i, j;
 
-	Mat forw_pos = Mat::zeros(confidence.rows, confidence.cols, CV_32FC2);
+	Mat forw_pos = Mat::zeros(confidence.rows, confidence.cols, CV_64FC2);
 
 	for (i = 0; i < confidence.rows; i++) for (j = 0; j < confidence.cols; j++) {
 		// forward
@@ -347,12 +362,12 @@ void showConfidence (Mat& flow_forward, Mat& flow_backward, Mat& confidence)
 		tmp_pos[1] = j + tmp_flow[0];
 	}
 
-	float max_confdence = 0;
+	double max_confdence = 0;
 
-	float portion_i, portion_j;
+	double portion_i, portion_j;
 	int i_to, j_to;
 	int n, m;
-	float sum;
+	double sum;
 
 	for (i = 0; i < confidence.rows; i++) for (j = 0; j < confidence.cols; j++) {
 		Vec2f& cur_flow = flow_forward.at<Vec2f>(i, j);
@@ -418,10 +433,10 @@ void showConfidence (Mat& flow_forward, Mat& flow_backward, Mat& confidence)
 	//confidence = EXsmall;
 }
 
-double ExpNegSQR (float x, float y) {
-	float sigma = 0.4343; // make one pixel far decay to 0.1
-	//float sigma = 0.2171; // make one pixel far decay to 0.01
-	//float sigma = 0.1448; // make one pixel far decay to 0.001
+double ExpNegSQR (double x, double y) {
+	double sigma = 0.4343; // make one pixel far decay to 0.1
+	//double sigma = 0.2171; // make one pixel far decay to 0.01
+	//double sigma = 0.1448; // make one pixel far decay to 0.001
 
 	return exp(-(SQR(x) + SQR(y)) / sigma);
 	//return (double) ((SQR(x) < 1)&&(SQR(y) < 1));
@@ -429,7 +444,7 @@ double ExpNegSQR (float x, float y) {
 
 double calcConfidence (Vec2f& f, Vec2f& b)
 {
-	float diff_x, diff_y;
+	double diff_x, diff_y;
 	diff_x = f[0] + b[0];
 	diff_y = f[1] + b[1];
 
@@ -476,7 +491,7 @@ void getBetterFlow (vector<Mat>& oriConfs, vector<Mat>& oriFlows, vector<Mat>& n
 	combinedConfs.resize(oriConfs.size());
 
 	for (int k = 0; k < oriConfs.size(); k++) {
-		combinedFlows[k] = Mat::zeros(oriFlows[k].rows, oriFlows[k].cols, CV_32FC2);
+		combinedFlows[k] = Mat::zeros(oriFlows[k].rows, oriFlows[k].cols, CV_64FC2);
 		combinedConfs[k] = Mat::zeros(oriFlows[k].rows, oriFlows[k].cols, CV_64F);
 
 		for (int i = 0; i < oriConfs[0].rows; i++) for (int j = 0; j < oriConfs[0].cols; j++) {
@@ -503,6 +518,7 @@ void getBetterFlow (vector<Mat>& oriConfs, vector<Mat>& oriFlows, vector<Mat>& n
 }
 
 // FlexISP
+/*
 void formResampleMatrix (vector < vector < vector <LR_Pixel> > >& LR_pixels,
 							  vector < vector <HR_Pixel> >&  HR_pixels,
 							  vector <MySparseMat>& S,
@@ -562,7 +578,7 @@ void formResampleMatrix (vector < vector < vector <LR_Pixel> > >& LR_pixels,
 		tripletListT.clear();
 	}
 }
-
+*/
 /*
 void resampleByMatrix (Mat& X,
 					   vector <EigenSpRowMat>& S, 
@@ -753,33 +769,33 @@ void DivideToBlocksToConstruct(vector<Mat>& BigLRimgs, vector<Mat>& BigFlows, ve
 
 //
 
-void weightedNeighborWarp (vector<vector<HR_Pixel> >& HR_pixels, Mat& HRimg)
-{
-	HRimg = Mat::zeros(HR_pixels.size(), HR_pixels[0].size(), CV_64F);
-
-	int i, j, k;
-	
-	double tmp_sum, tmp_d_sum;
-	for (i = 0; i < HR_pixels.size(); i++) {
-		for (j = 0; j < HR_pixels[i].size(); j++) {
-			//HRimg.at<double>(i,j) = (double)tmp_HR.at<uchar>(i,j);
-			
-			tmp_sum = 0;
-			tmp_d_sum = 0;
-			for (k = 0; k < HR_pixels[i][j].influenced_pixels.size(); k++) {
-				tmp_sum += HR_pixels[i][j].influenced_pixels[k].pixel->val * HR_pixels[i][j].influenced_pixels[k].hBP * HR_pixels[i][j].influenced_pixels[k].pixel->confidence/**/;
-				tmp_d_sum += HR_pixels[i][j].influenced_pixels[k].hBP /** influence_bucket[i][j].influenced_pixels[k].pixel->confidence/**/;
-			}
-			
-			if (HR_pixels[i][j].influenced_pixels.size() == 0) {
-				HRimg.at<double>(i,j) = tmp_sum;
-			}
-			else {
-				//tmp_d_sum = HR_pixels[i][j].influenced_pixels.size();
-				HRimg.at<double>(i,j) = tmp_sum / tmp_d_sum;
-			}
-			/**/
-		}
-	}
-
-}
+//void weightedNeighborWarp (vector<vector<HR_Pixel> >& HR_pixels, Mat& HRimg)
+//{
+//	HRimg = Mat::zeros(HR_pixels.size(), HR_pixels[0].size(), CV_64F);
+//
+//	int i, j, k;
+//	
+//	double tmp_sum, tmp_d_sum;
+//	for (i = 0; i < HR_pixels.size(); i++) {
+//		for (j = 0; j < HR_pixels[i].size(); j++) {
+//			//HRimg.at<double>(i,j) = (double)tmp_HR.at<uchar>(i,j);
+//			
+//			tmp_sum = 0;
+//			tmp_d_sum = 0;
+//			for (k = 0; k < HR_pixels[i][j].influenced_pixels.size(); k++) {
+//				tmp_sum += HR_pixels[i][j].influenced_pixels[k].pixel->val * HR_pixels[i][j].influenced_pixels[k].hBP * HR_pixels[i][j].influenced_pixels[k].pixel->confidence/**/;
+//				tmp_d_sum += HR_pixels[i][j].influenced_pixels[k].hBP /** influence_bucket[i][j].influenced_pixels[k].pixel->confidence/**/;
+//			}
+//			
+//			if (HR_pixels[i][j].influenced_pixels.size() == 0) {
+//				HRimg.at<double>(i,j) = tmp_sum;
+//			}
+//			else {
+//				//tmp_d_sum = HR_pixels[i][j].influenced_pixels.size();
+//				HRimg.at<double>(i,j) = tmp_sum / tmp_d_sum;
+//			}
+//			/**/
+//		}
+//	}
+//
+//}

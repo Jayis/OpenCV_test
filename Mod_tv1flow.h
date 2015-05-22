@@ -16,6 +16,7 @@ class Mod_OpticalFlowDual_TVL1 : public DenseOpticalFlow
 {
 public:
     Mod_OpticalFlowDual_TVL1();
+	~Mod_OpticalFlowDual_TVL1();
 
     void calc(InputArray I0, InputArray I1, InputOutputArray flow);
 	void collectGarbage();

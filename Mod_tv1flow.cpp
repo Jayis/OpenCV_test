@@ -827,6 +827,11 @@ void Mod_OpticalFlowDual_TVL1::collectGarbage()
     u2y_buf.release();
 }
 
+Mod_OpticalFlowDual_TVL1::~Mod_OpticalFlowDual_TVL1()
+{
+	collectGarbage();
+}
+
 CV_INIT_ALGORITHM(Mod_OpticalFlowDual_TVL1, "DenseOpticalFlow.DualTVL1",
                   obj.info()->addParam(obj, "tau", obj.tau, false, 0, 0,
                                        "Time step of the numerical scheme");

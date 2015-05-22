@@ -14,6 +14,7 @@ void BackProjection ( Mat& HRimg, double scale, vector<Mat>& imgs, vector<Mat>& 
 	int LR_cols = imgs[0].cols;
 	int HR_rows = LR_rows * scale;
 	int HR_cols = LR_cols * scale;
+	int LR_imgCount = imgs.size();
 
 	// pre-interpolation
 	Mat super_PSF;
@@ -25,31 +26,19 @@ void BackProjection ( Mat& HRimg, double scale, vector<Mat>& imgs, vector<Mat>& 
 
 	//----- for every pixel x of HR image, record influenced pixel y
 	// initialize bucket
-	vector < vector <HR_Pixel> >  HR_pixels;
-	HR_pixels.resize(HR_rows);
-	for (i = 0; i < HR_pixels.size(); i++) {
-		HR_pixels[i].resize(HR_cols);
-	}
-	for (i = 0; i < HR_pixels.size(); i++) for (j = 0; j < HR_pixels[0].size(); j++) {
-		HR_pixels[i][j].i = i;
-		HR_pixels[i][j].j = j;
-	}
+	HR_Pixel_Array* HR_pixels = new HR_Pixel_Array(HR_rows, HR_cols);
 	// initialize influenced pixels (for each pixel in each LR img)
-	vector < vector < vector <LR_Pixel> > > LR_pixels;
-	LR_pixels.resize(imgs.size());
-	for (k = 0; k < imgs.size(); k++) {
-		LR_pixels[k].resize(LR_rows);
-		for (i = 0; i < LR_rows; i++) {
-			LR_pixels[k][i].resize(LR_cols);
-		}
-	}
-	for (k = 0; k < imgs.size(); k++) for (i = 0; i < LR_rows; i++) for (j = 0; j < LR_cols; j++) {
-		LR_pixels[k][i][j].i = i;
-		LR_pixels[k][i][j].j = j;
-		LR_pixels[k][i][j].k = k;
-	}
+	LR_Pixel_Array* LR_pixels = new LR_Pixel_Array(LR_imgCount, LR_rows, LR_cols);
 	//
-	formInfluenceRelation (imgs,
+	/*formInfluenceRelation (imgs,
+							flows,
+							LR_pixels,
+							HR_pixels,
+							scale,
+							super_PSF,
+							super_BPk,
+							interp_scale);*/
+	InfluenceRelation relations(imgs,
 							flows,
 							LR_pixels,
 							HR_pixels,
@@ -64,14 +53,23 @@ void BackProjection ( Mat& HRimg, double scale, vector<Mat>& imgs, vector<Mat>& 
 	double tmp_sum;
 	for (i = 0; i < HR_rows; i++) {
 		for (j = 0; j < HR_cols; j++) {
-			tmp_sum = 0;			
-			for (k = 0; k < HR_pixels[i][j].influenced_pixels.size(); k++) {
-				tmp_sum += HR_pixels[i][j].influenced_pixels[k].pixel->val;
+			tmp_sum = 0;
+
+			for (k = 0; k < HR_pixels->access(i, j).influence_link_cnt; k++) {
+				tmp_sum += relations.influence_links[HR_pixels->access(i, j).influence_link_start + k].pixel->val;
 			}
-			if (HR_pixels[i][j].influenced_pixels.size() == 0) 
+			if (HR_pixels->access(i, j).influence_link_cnt == 0) 
 				HRimg.at<double>(i,j) = tmp_sum;
 			else
-				HRimg.at<double>(i,j) = tmp_sum / HR_pixels[i][j].influenced_pixels.size();
+				HRimg.at<double>(i,j) = tmp_sum / HR_pixels->access(i, j).influence_link_cnt;
+
+			//for (k = 0; k < HR_pixels->access(i, j).influenced_pixels.size(); k++) {
+			//	tmp_sum += HR_pixels->access(i, j).influenced_pixels[k].pixel->val;
+			//}
+			//if (HR_pixels->access(i, j).influenced_pixels.size() == 0) 
+			//	HRimg.at<double>(i,j) = tmp_sum;
+			//else
+			//	HRimg.at<double>(i,j) = tmp_sum / HR_pixels->access(i, j).influenced_pixels.size();
 		}
 	}
 	/**/
@@ -88,7 +86,7 @@ void BackProjection ( Mat& HRimg, double scale, vector<Mat>& imgs, vector<Mat>& 
 	while (!stop) {
 		epsi = 0;
 
-		HR_to_LR_percetion(HRimg, LR_pixels, scale, super_PSF, true, interp_scale);
+		HR_to_LR_percetion(HRimg, *LR_pixels, relations, super_PSF, true, interp_scale);
 
 		// see LR perception
 		/*
@@ -106,7 +104,7 @@ void BackProjection ( Mat& HRimg, double scale, vector<Mat>& imgs, vector<Mat>& 
 		// for each HR x, calculate f(x)'n+1'
 		for (i = 0; i < HR_rows; i++) for (j = 0; j < HR_cols; j++) {
 			sum_diff = 0;
-			sum_hBP = HR_pixels[i][j].hBP_sum;
+			sum_hBP = HR_pixels->access(i, j).hBP_sum;
 			// for all influenced pixel
 			// sum up hBP first
 			/*
@@ -115,9 +113,10 @@ void BackProjection ( Mat& HRimg, double scale, vector<Mat>& imgs, vector<Mat>& 
 			}
 			*/
 			// sum up diff
-			for (k = 0; k < HR_pixels[i][j].influenced_pixels.size(); k++) {
-				diff = HR_pixels[i][j].influenced_pixels[k].pixel->val - HR_pixels[i][j].influenced_pixels[k].pixel->perception;
-				cur_hBP = HR_pixels[i][j].influenced_pixels[k].hBP;
+			for (k = 0; k < HR_pixels->access(i, j).influence_link_cnt; k++) {
+				Influenced_Pixel& cur_influenced_pix = relations.influence_links[HR_pixels->access(i, j).influence_link_start + k];
+				diff = cur_influenced_pix.pixel->val - cur_influenced_pix.pixel->perception;
+				cur_hBP = cur_influenced_pix.hBP;
 				sum_diff += diff * ( SQR(cur_hBP) / BP_c / sum_hBP);
 			}
 
@@ -165,6 +164,7 @@ void BackProjection_Confidence ( Mat& HRimg, double scale, vector<Mat>& imgs, ve
 	int LR_cols = imgs[0].cols;
 	int HR_rows = LR_rows * scale;
 	int HR_cols = LR_cols * scale;
+	int LR_imgCount = imgs.size();
 
 	// pre-interpolation
 	Mat super_PSF;
@@ -176,32 +176,19 @@ void BackProjection_Confidence ( Mat& HRimg, double scale, vector<Mat>& imgs, ve
 
 	//----- for every pixel x of HR image, record influenced pixel y
 	// initialize bucket
-	vector < vector < HR_Pixel> >  HR_pixels;
-	HR_pixels.resize(HR_rows);
-	for (i = 0; i < HR_pixels.size(); i++) {
-		HR_pixels[i].resize(HR_cols);
-	}
-	for (i = 0; i < HR_pixels.size(); i++) for (j = 0; j < HR_pixels[0].size(); j++) {
-		HR_pixels[i][j].i = i;
-		HR_pixels[i][j].j = j;
-	}
+	HR_Pixel_Array* HR_pixels = new HR_Pixel_Array(HR_rows, HR_cols);
 	// initialize influenced pixels (for each pixel in each LR img)
-	vector < vector < vector <LR_Pixel> > > LR_pixels;
-	LR_pixels.resize(imgs.size());
-	for (k = 0; k < imgs.size(); k++) {
-		LR_pixels[k].resize(LR_rows);
-		for (i = 0; i < LR_rows; i++) {
-			LR_pixels[k][i].resize(LR_cols);
-		}
-	}
-	for (k = 0; k < imgs.size(); k++) for (i = 0; i < LR_rows; i++) for (j = 0; j < LR_cols; j++) {
-		LR_pixels[k][i][j].i = i;
-		LR_pixels[k][i][j].j = j;
-		LR_pixels[k][i][j].k = k;
-		LR_pixels[k][i][j].confidence = confidences[k].at<double>(i,j);
-	}
+	LR_Pixel_Array* LR_pixels = new LR_Pixel_Array(LR_imgCount, LR_rows, LR_cols);
 	//
-	formInfluenceRelation (imgs,
+	/*formInfluenceRelation (imgs,
+							flows,
+							LR_pixels,
+							HR_pixels,
+							scale,
+							super_PSF,
+							super_BPk,
+							interp_scale);*/
+	InfluenceRelation relations(imgs,
 							flows,
 							LR_pixels,
 							HR_pixels,
@@ -211,36 +198,31 @@ void BackProjection_Confidence ( Mat& HRimg, double scale, vector<Mat>& imgs, ve
 							interp_scale);
 	
 	// test bucket, forming HR initial guess
-
 	HRimg = Mat::zeros(HR_rows, HR_cols, CV_64F);
-	//Mat tmp_HR;
-	//resize(imgs[0], tmp_HR, Size(HR_rows, HR_cols), 0, 0, INTER_CUBIC);
-
-	
-	double tmp_sum, tmp_d_sum;
+	double tmp_sum;
 	for (i = 0; i < HR_rows; i++) {
 		for (j = 0; j < HR_cols; j++) {
-			//HRimg.at<double>(i,j) = (double)tmp_HR.at<uchar>(i,j);
-			
 			tmp_sum = 0;
-			tmp_d_sum = 0;
-			for (k = 0; k < HR_pixels[i][j].influenced_pixels.size(); k++) {
-				tmp_sum += HR_pixels[i][j].influenced_pixels[k].pixel->val * HR_pixels[i][j].influenced_pixels[k].hBP /** HR_pixels[i][j].influenced_pixels[k].pixel->confidence/**/;
-				tmp_d_sum += HR_pixels[i][j].influenced_pixels[k].hBP /** HR_pixels[i][j].influenced_pixels[k].pixel->confidence/**/;
-			}
 
-			if (HR_pixels[i][j].influenced_pixels.size() == 0) {
+			for (k = 0; k < HR_pixels->access(i, j).influence_link_cnt; k++) {
+				tmp_sum += relations.influence_links[HR_pixels->access(i, j).influence_link_start + k].pixel->val;
+			}
+			if (HR_pixels->access(i, j).influence_link_cnt == 0) 
 				HRimg.at<double>(i,j) = tmp_sum;
-			}
-			else {
-				//tmp_d_sum = HR_pixels[i][j].influenced_pixels.size();
-				HRimg.at<double>(i,j) = tmp_sum / tmp_d_sum;
-			}
-			/**/
+			else
+				HRimg.at<double>(i,j) = tmp_sum / HR_pixels->access(i, j).influence_link_cnt;
+
+			//for (k = 0; k < HR_pixels->access(i, j).influenced_pixels.size(); k++) {
+			//	tmp_sum += HR_pixels->access(i, j).influenced_pixels[k].pixel->val;
+			//}
+			//if (HR_pixels->access(i, j).influenced_pixels.size() == 0) 
+			//	HRimg.at<double>(i,j) = tmp_sum;
+			//else
+			//	HRimg.at<double>(i,j) = tmp_sum / HR_pixels->access(i, j).influenced_pixels.size();
 		}
 	}
 	/**/
-	/*
+	
 	double sum_diff, sum_hBP, sum_confidence;
 	double cur_hBP, cur_confidence, diff;
 
@@ -253,7 +235,7 @@ void BackProjection_Confidence ( Mat& HRimg, double scale, vector<Mat>& imgs, ve
 	while (!stop) {
 		epsi = 0;
 
-		HR_to_LR_percetion(HRimg, LR_pixels, scale, super_PSF, true, interp_scale);
+		HR_to_LR_percetion(HRimg, *LR_pixels, relations, super_PSF, true, interp_scale);
 
 		// see LR perception
 		//
@@ -271,19 +253,20 @@ void BackProjection_Confidence ( Mat& HRimg, double scale, vector<Mat>& imgs, ve
 		// for each HR x, calculate f(x)'n+1'
 		for (i = 0; i < HR_rows; i++) for (j = 0; j < HR_cols; j++) {
 			sum_diff = 0;
-			sum_hBP = HR_pixels[i][j].hBP_sum;
+			sum_hBP = HR_pixels->access(i, j).hBP_sum;
 			sum_confidence = 0;
 			// for all influenced pixel
-			for (k = 0; k < HR_pixels[i][j].influenced_pixels.size(); k++) {
-				cur_hBP = HR_pixels[i][j].influenced_pixels[k].hBP;
-				cur_confidence = HR_pixels[i][j].influenced_pixels[k].pixel -> confidence;
+			for (k = 0; k < HR_pixels->access(i, j).influence_link_cnt; k++) {
+				Influenced_Pixel& cur_influenced_pix = relations.influence_links[HR_pixels->access(i, j).influence_link_start + k];
+				cur_hBP = cur_influenced_pix.hBP;
+				cur_confidence = cur_influenced_pix.pixel -> confidence;
 				// sum up hBP
 				//sum_hBP += cur_hBP;
 				// sum up confidence weight
 				sum_confidence += cur_confidence;
 
 				// sum up diff
-				diff = HR_pixels[i][j].influenced_pixels[k].pixel->val - HR_pixels[i][j].influenced_pixels[k].pixel->perception;				
+				diff = cur_influenced_pix.pixel->val - cur_influenced_pix.pixel->perception;				
 				sum_diff += diff * ( SQR(cur_hBP) ) * cur_confidence;	
 				//sum_diff += diff *  cur_hBP  * cur_confidence;	
 			}

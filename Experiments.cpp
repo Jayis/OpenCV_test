@@ -1,7 +1,7 @@
 #include "Experiments.h"
 
 void symmetricOptFlow_test() {
-	String test_set = "shake2000";	
+	String test_set = "res2000";	
 	int n = 4;
 
 	vector<Mat> imgsC1;
@@ -22,8 +22,8 @@ void symmetricOptFlow_test() {
 	for (int k = 0; k < n; k++) {
 		cout << "calculating symmetric flows " + int2str(k) + "\n";
 
-		SymmConfOptFlow_calc* symmOptFlow = new SymmConfOptFlow_calc;
-		symmOptFlow->calc(imgsC1[k], imgsC1[0], flows[k], flows_back[k], confs[k]);
+		SymmConfOptFlow_calc symmOptFlow;
+		symmOptFlow.calc(imgsC1[k], imgsC1[0], flows[k], flows_back[k], confs[k]);
 
 		imwrite("output/symmConf" + test_set + int2str(k) + "to0.bmp", confs[k]*255);
 	}
@@ -86,7 +86,7 @@ void exampleBased_test ()
 	/*
 	vector<Mat> imgs, flows;
 	imgs.push_back(LR_img);
-	Mat noFlow = Mat::zeros(LR_rows, LR_cols, CV_32FC2);
+	Mat noFlow = Mat::zeros(LR_rows, LR_cols, CV_64FC2);
 	flows.push_back(noFlow);
 
 	Mat dot = Mat::zeros(5,5,CV_64F);
@@ -212,8 +212,8 @@ void test()
 	for (int k = 0; k < n; k++) {
 		cout << "\t calculating " << int2str(k) << " ...\n";
 
-		//flows[k] = Mat::zeros(imgsC1[0].rows, imgsC1[0].cols, CV_32FC2);
-		//flows_back[k] = Mat::zeros(imgsC1[0].rows, imgsC1[0].cols, CV_32FC2);
+		//flows[k] = Mat::zeros(imgsC1[0].rows, imgsC1[0].cols, CV_64FC2);
+		//flows_back[k] = Mat::zeros(imgsC1[0].rows, imgsC1[0].cols, CV_64FC2);
 		OptFlow->calc(imgsC1[k], imgsC1[0], flows[k]);
 		OptFlow->calc(imgsC1[0], imgsC1[k], flows_back[k]);
 		cout << "\t showing Confidence " << int2str(k) << " ...\n";
@@ -222,20 +222,20 @@ void test()
 		imwrite("output/conf_" + test_set + int2str(k) + "to0.bmp", confs[k]*254);
 		//imwrite("output/confnew_" + test_set + int2str(k) + "to0.bmp", newConfs[k]*254);
 
-		//blur_flows[k] = Mat::zeros(imgsC1[0].rows, imgsC1[0].cols, CV_32FC2);
-		//blur_flows_back[k] = Mat::zeros(imgsC1[0].rows, imgsC1[0].cols, CV_32FC2);
+		//blur_flows[k] = Mat::zeros(imgsC1[0].rows, imgsC1[0].cols, CV_64FC2);
+		//blur_flows_back[k] = Mat::zeros(imgsC1[0].rows, imgsC1[0].cols, CV_64FC2);
 		OptFlow->calc(blurImg[k], blurImg[0], blur_flows[k]);
 		OptFlow->calc(blurImg[0], blurImg[k], blur_flows_back[k]);
 		showConfidence (blur_flows[k], blur_flows_back[k], blur_confs[k]);
 
 		imwrite("output/blurConf_" + test_set + int2str(k) + "to0.bmp", blur_confs[k]*254);
 
-		diffs[k] = Mat::zeros(flows[k].rows, flows[k].cols, CV_32F);
+		diffs[k] = Mat::zeros(flows[k].rows, flows[k].cols, CV_64F);
 		for (int i = 0; i < flows[k].rows; i++) for (int j = 0; j < flows[k].cols; j++) {
 			Vec2f& tmp1 = flows[k].at<Vec2f>(i, j);
 			Vec2f& tmp2 = blur_flows[k].at<Vec2f>(i, j);
 
-			diffs[k].at<float>(i, j) =  SQR(tmp1[0] - tmp2[0]) + SQR(tmp1[1] - tmp2[1]);
+			diffs[k].at<double>(i, j) =  SQR(tmp1[0] - tmp2[0]) + SQR(tmp1[1] - tmp2[1]);
 		}
 
 		imwrite("output/diff_" + test_set + int2str(k) + ".bmp", diffs[k]);
@@ -295,8 +295,8 @@ void flow2H_test () {
 	for (int k = 0; k < n; k++) {
 		cout << "\t calculating " << int2str(k) << " ...\n";
 
-		flows[k] = Mat::zeros(imgsC1[0].rows, imgsC1[0].cols, CV_32FC2);
-		flows_back[k] = Mat::zeros(imgsC1[0].rows, imgsC1[0].cols, CV_32FC2);
+		flows[k] = Mat::zeros(imgsC1[0].rows, imgsC1[0].cols, CV_64FC2);
+		flows_back[k] = Mat::zeros(imgsC1[0].rows, imgsC1[0].cols, CV_64FC2);
 		OptFlow->calc(imgsC1[k], imgsC1[0], flows[k]);
 		OptFlow->calc(imgsC1[0], imgsC1[k], flows_back[k]);
 		cout << "\t showing Confidence " << int2str(k) << " ...\n";
@@ -330,20 +330,20 @@ void flow2H_test () {
 
 		Mat H, mask, maskImg;
 
-		float cur_err[6] = {0.1, 0.5, 1, 2.5, 5, 10};
+		double cur_err[6] = {0.1, 0.5, 1, 2.5, 5, 10};
 		int test_num = 0;
 
 		while (test_num < 6) {
 
 			H = findHomography(srcPoints, dstPoints, CV_RANSAC, cur_err[test_num], mask);
 
-			maskImg = Mat::zeros(newConfs[k].rows, newConfs[k].cols, CV_32F);
+			maskImg = Mat::zeros(newConfs[k].rows, newConfs[k].cols, CV_64F);
 
 			cout << mask.type();
 
 			int count = 0;
 			for (int i = 0; i < mask.rows; i++) {
-				maskImg.at<float>(srcPoints[i]) = mask.at<short>(i, 1);
+				maskImg.at<double>(srcPoints[i]) = mask.at<short>(i, 1);
 				if (mask.at<short>(i, 1) == 0) {
 					count++;
 				}
@@ -436,8 +436,8 @@ void LinearConstruct_test () {
 		/**/
 		
 		// if we want to use initial flow, need to pre-allocate
-		//blur_flows[k] = Mat::zeros(imgsC1[k].rows, imgsC1[k].cols, CV_32FC2);
-		//blur_flows_back[k] = Mat::zeros(imgsC1[k].rows, imgsC1[k].cols, CV_32FC2);
+		//blur_flows[k] = Mat::zeros(imgsC1[k].rows, imgsC1[k].cols, CV_64FC2);
+		//blur_flows_back[k] = Mat::zeros(imgsC1[k].rows, imgsC1[k].cols, CV_64FC2);
 		/*
 		OptFlow->calc(blurImg[k], blurImg[0], blur_flows[k]);	
 		OptFlow->calc(blurImg[0], blurImg[k], blur_flows_back[k]);
@@ -567,26 +567,25 @@ void LinearConstruct_test () {
 
 	return;
 }
-
+/*
 void FlexISP_test () {
-	/*
-	Mat in = imread("input/test/CIMG1439.JPG", IMREAD_GRAYSCALE);
-	Mat in_double;
-	in.convertTo(in_double, CV_64F);
-	vector<Mat> y;
-	y.resize(3);
-	for (int k = 0; k < 3; k++) {
-		y[k] = Mat::zeros(in.rows, in.cols, CV_64F);
-	}
-	vector<Mat> output;
-	output.resize(3);
-	for (int k = 0; k < 3; k++) {
-		output[k] = Mat::zeros(in.rows, in.cols, CV_64F);
-	}
+	
+	//Mat in = imread("input/test/CIMG1439.JPG", IMREAD_GRAYSCALE);
+	//Mat in_double;
+	//in.convertTo(in_double, CV_64F);
+	//vector<Mat> y;
+	//y.resize(3);
+	//for (int k = 0; k < 3; k++) {
+	//	y[k] = Mat::zeros(in.rows, in.cols, CV_64F);
+	//}
+	//vector<Mat> output;
+	//output.resize(3);
+	//for (int k = 0; k < 3; k++) {
+	//	output[k] = Mat::zeros(in.rows, in.cols, CV_64F);
+	//}
 
-	penalty(y, in_double, 1);
-	data_fidelity(in_double, in_double, y, 1);
-	*/	
+	//penalty(y, in_double, 1);
+	//data_fidelity(in_double, in_double, y, 1);
 
 	String test_set = "bear";	
 	int n = 4;
@@ -609,8 +608,8 @@ void FlexISP_test () {
 	cout << "calculating flows & confidences\n";
 	Ptr<DenseOpticalFlow> OptFlow = createOptFlow_DualTVL1();	
 	for (int k = 0; k < n; k++) {
-		flows[k] = Mat::zeros(imgsC1[0].rows, imgsC1[0].cols, CV_32FC2);
-		flows_back[k] = Mat::zeros(imgsC1[0].rows, imgsC1[0].cols, CV_32FC2);
+		flows[k] = Mat::zeros(imgsC1[0].rows, imgsC1[0].cols, CV_64FC2);
+		flows_back[k] = Mat::zeros(imgsC1[0].rows, imgsC1[0].cols, CV_64FC2);
 		OptFlow->calc(imgsC1[k], imgsC1[0], flows[k]);
 		OptFlow->calc(imgsC1[0], imgsC1[k], flows_back[k]);
 		showConfidence (flows[k], flows_back[k], confs[k]);
@@ -637,6 +636,7 @@ void FlexISP_test () {
 
 	return ;
 }
+*/
 
 void OptFlow_BP_test () {
 	String test_set = "bear";
@@ -656,7 +656,7 @@ void OptFlow_BP_test () {
 	Ptr<DenseOpticalFlow> OptFlow = createOptFlow_DualTVL1();
 	flows.resize(4);
 	for (int k = 0; k < 4; k++) {
-		flows[k] = Mat::zeros(imgsC1[0].rows, imgsC1[0].cols, CV_32FC2);
+		flows[k] = Mat::zeros(imgsC1[0].rows, imgsC1[0].cols, CV_64FC2);
 		OptFlow->calc(imgsC1[k], imgsC1[0], flows[k]);
 	}
 	/*
@@ -703,8 +703,8 @@ void OptFlow_BP_test () {
 	Mat img1 = imread("input/bear256_01.bmp", CV_LOAD_IMAGE_GRAYSCALE);
 	Mat img2 = imread("input/bear256_02.bmp", CV_LOAD_IMAGE_GRAYSCALE);
 
-	Mat flow1 = Mat::zeros( img1.rows, img1.cols, CV_32FC2 );
-	Mat flow2 = Mat::zeros( img1.rows, img1.cols, CV_32FC2 );
+	Mat flow1 = Mat::zeros( img1.rows, img1.cols, CV_64FC2 );
+	Mat flow2 = Mat::zeros( img1.rows, img1.cols, CV_64FC2 );
 
 	Ptr<DenseOpticalFlow> gg = createOptFlow_DualTVL1();
 	//gg->set("lambda", 0.1);
@@ -811,8 +811,8 @@ void OptFlow_ConfBP_test () {
 	// careful calculate which flow
 	Ptr<DenseOpticalFlow> OptFlow = createOptFlow_DualTVL1();
 	for (int k = 0; k < 4; k++) {
-		flows[k] = Mat::zeros(curUsing[0].rows, curUsing[0].cols, CV_32FC2);
-		flows_back[k] = Mat::zeros(curUsing[0].rows, curUsing[0].cols, CV_32FC2);
+		flows[k] = Mat::zeros(curUsing[0].rows, curUsing[0].cols, CV_64FC2);
+		flows_back[k] = Mat::zeros(curUsing[0].rows, curUsing[0].cols, CV_64FC2);
 		OptFlow->calc(curUsing[k], curUsing[0], flows[k]);
 		OptFlow->calc(curUsing[0], curUsing[k], flows_back[k]);
 	}
@@ -864,8 +864,8 @@ void OptFlow_ConfBP_test () {
 	Mat img1 = imread("input/res256_01.bmp", CV_LOAD_IMAGE_GRAYSCALE);
 	Mat img2 = imread("input/res256_04.bmp", CV_LOAD_IMAGE_GRAYSCALE);
 
-	Mat flow1to2 = Mat::zeros( img1.rows, img1.cols, CV_32FC2 );
-	Mat flow2to1 = Mat::zeros( img1.rows, img1.cols, CV_32FC2 );
+	Mat flow1to2 = Mat::zeros( img1.rows, img1.cols, CV_64FC2 );
+	Mat flow2to1 = Mat::zeros( img1.rows, img1.cols, CV_64FC2 );
 
 	Ptr<DenseOpticalFlow> gg = createOptFlow_DualTVL1();
 	//gg->set("lambda", 0.1);

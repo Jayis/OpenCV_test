@@ -22,57 +22,26 @@ LinearConstructor::LinearConstructor( vector<Mat>& LR_imgs, vector<Mat>& flows, 
 
 	//----- for every pixel x of HR image, record influenced pixel y
 	// initialize bucket
-	
-	HR_pixels.resize(HR_rows);
-	for (i = 0; i < HR_pixels.size(); i++) {
-		HR_pixels[i].resize(HR_cols);
-	}
-	
-	//HR_pixels = HR_Pixel_Array(HR_rows, HR_cols);
-	for (i = 0; i < HR_rows; i++) for (j = 0; j < HR_cols; j++) {
-		
-		HR_pixels[i][j].i = i;
-		HR_pixels[i][j].j = j;
-		
-		/*
-		HR_pixels.access(i, j).i = i;
-		HR_pixels.access(i, j).j = j;
-		*/
-	}
-
+	HR_pixels = new HR_Pixel_Array(HR_rows, HR_cols);
 	// initialize influenced pixels (for each pixel in each LR img)
-	
-	LR_pixels.resize(LR_imgCount);
-	for (k = 0; k < LR_imgCount; k++) {
-		LR_pixels[k].resize(LR_rows);
-		for (i = 0; i < LR_rows; i++) {
-			LR_pixels[k][i].resize(LR_cols);
-		}
-	}
-	
-	//LR_pixels = LR_Pixel_Array(LR_imgCount, LR_rows, LR_cols);
-	for (k = 0; k < LR_imgCount; k++) for (i = 0; i < LR_rows; i++) for (j = 0; j < LR_cols; j++) {
-	
-		LR_pixels[k][i][j].i = i;
-		LR_pixels[k][i][j].j = j;
-		LR_pixels[k][i][j].k = k;
-		/*
-		LR_pixels.access(k, i, j).i = i;
-		LR_pixels.access(k, i, j).j = j;
-		LR_pixels.access(k, i, j).k = k;
-		*/
-	}
+	LR_pixels = new LR_Pixel_Array(LR_imgCount, LR_rows, LR_cols);
 	//
-	formInfluenceRelation (
-		LR_imgs,
-		flows,
-		LR_pixels,
-		HR_pixels,
-		scale,
-		super_PSF,
-		super_BPk,
-		interp_scale
-		);
+	/*formInfluenceRelation (LR_imgs,
+							flows,
+							LR_pixels,
+							HR_pixels,
+							scale,
+							super_PSF,
+							super_BPk,
+							interp_scale);*/
+	relations = new InfluenceRelation (LR_imgs,
+							flows,
+							LR_pixels,
+							HR_pixels,
+							scale,
+							super_PSF,
+							super_BPk,
+							interp_scale);
 	//
 	//A_triplets.reserve( HR_pixelCount * (PSF.rows+1) * (PSF.cols+1) * LR_imgCount + 5 * HR_pixelCount );
 	//b_vec.reserve( LR_imgCount * LR_pixelCount + 5 * HR_pixelCount );
@@ -81,6 +50,7 @@ LinearConstructor::LinearConstructor( vector<Mat>& LR_imgs, vector<Mat>& flows, 
 
 	cout << "----- Linear-Constructor ----- CONSTRUCT COMPLETE\n";
 }
+/**/
 
 LinearConstructor::LinearConstructor( vector<Mat>& LR_imgs, vector<Mat>& flows, vector<Mat> confs, double scale, Mat& PSF) {
 	cout << "----- Linear-Constructor -----\n";
@@ -104,38 +74,26 @@ LinearConstructor::LinearConstructor( vector<Mat>& LR_imgs, vector<Mat>& flows, 
 
 	//----- for every pixel x of HR image, record influenced pixel y
 	// initialize bucket
-	HR_pixels.resize(HR_rows);
-	for (i = 0; i < HR_pixels.size(); i++) {
-		HR_pixels[i].resize(HR_cols);
-	}
-	for (i = 0; i < HR_pixels.size(); i++) for (j = 0; j < HR_pixels[0].size(); j++) {
-		HR_pixels[i][j].i = i;
-		HR_pixels[i][j].j = j;
-	}
+	HR_pixels = new HR_Pixel_Array(HR_rows, HR_cols);
 	// initialize influenced pixels (for each pixel in each LR img)
-	LR_pixels.resize(LR_imgCount);
-	for (k = 0; k < LR_imgCount; k++) {
-		LR_pixels[k].resize(LR_rows);
-		for (i = 0; i < LR_rows; i++) {
-			LR_pixels[k][i].resize(LR_cols);
-		}
-	}
-	for (k = 0; k < LR_imgCount; k++) for (i = 0; i < LR_rows; i++) for (j = 0; j < LR_cols; j++) {
-		LR_pixels[k][i][j].i = i;
-		LR_pixels[k][i][j].j = j;
-		LR_pixels[k][i][j].k = k;		
-	}
+	LR_pixels = new LR_Pixel_Array(LR_imgCount, LR_rows, LR_cols);
 	//
-	formInfluenceRelation (
-		LR_imgs,
-		flows,
-		LR_pixels,
-		HR_pixels,
-		scale,
-		super_PSF,
-		super_BPk,
-		interp_scale
-		);
+	/*formInfluenceRelation (LR_imgs,
+							flows,
+							LR_pixels,
+							HR_pixels,
+							scale,
+							super_PSF,
+							super_BPk,
+							interp_scale);*/
+	relations = new InfluenceRelation (LR_imgs,
+							flows,
+							LR_pixels,
+							HR_pixels,
+							scale,
+							super_PSF,
+							super_BPk,
+							interp_scale);
 	//
 	curRow = 0;
 	addDataFidelityWithConf(confs);
@@ -152,14 +110,14 @@ void LinearConstructor::addDataFidelity( ) {
 	for (int k = 0; k < LR_imgCount; k++) {
 
 		for (int ii = 0; ii < LR_rows; ii++) for (int jj = 0; jj < LR_cols; jj++) {
-			LR_Pixel& cur_LR_pix = LR_pixels[k][ii][jj];
+			LR_Pixel& cur_LR_pix = LR_pixels->access(k, ii, jj);
 
 			// A
-			for (int p = 0; p < cur_LR_pix.perception_pixels.size(); p++) {
+			for (int p = 0; p < cur_LR_pix.perception_link_cnt; p++) {
+				Perception_Pixel& cur_perception_pix = relations->perception_links[cur_LR_pix.perception_link_start + p];
+				sourcePos2ColIdx = cur_perception_pix.pixel -> i * HR_cols + cur_perception_pix.pixel -> j;
 
-				sourcePos2ColIdx = cur_LR_pix.perception_pixels[p].pixel -> i * HR_cols +	cur_LR_pix.perception_pixels[p].pixel -> j;
-
-				A_triplets.push_back( T(curRow, sourcePos2ColIdx, cur_LR_pix.perception_pixels[p].hPSF) );	
+				A_triplets.push_back( T(curRow, sourcePos2ColIdx, cur_perception_pix.hPSF) );	
 			}
 			// b
 			b_vec.push_back( cur_LR_pix.val );
@@ -181,15 +139,15 @@ void LinearConstructor::addDataFidelityWithConf(vector<Mat>& conf ) {
 	for (int k = 0; k < LR_imgCount; k++) {
 
 		for (int ii = 0; ii < LR_rows; ii++) for (int jj = 0; jj < LR_cols; jj++) {
-			LR_Pixel& cur_LR_pix = LR_pixels[k][ii][jj];
+			LR_Pixel& cur_LR_pix = LR_pixels->access(k, ii, jj);
 			curConf = conf[k].at<double>(ii, jj);
 
 			// A
-			for (int p = 0; p < cur_LR_pix.perception_pixels.size(); p++) {
+			for (int p = 0; p < cur_LR_pix.perception_link_cnt; p++) {
+				Perception_Pixel& cur_perception_pix = relations->perception_links[cur_LR_pix.perception_link_start + p];
+				sourcePos2ColIdx = cur_perception_pix.pixel -> i * HR_cols + cur_perception_pix.pixel -> j;
 
-				sourcePos2ColIdx = cur_LR_pix.perception_pixels[p].pixel -> i * HR_cols +	cur_LR_pix.perception_pixels[p].pixel -> j;
-
-				A_triplets.push_back( T(curRow, sourcePos2ColIdx, curConf * cur_LR_pix.perception_pixels[p].hPSF) );	
+				A_triplets.push_back( T(curRow, sourcePos2ColIdx, curConf * cur_perception_pix.hPSF) );	
 			}
 			// b
 			b_vec.push_back( curConf * cur_LR_pix.val );
@@ -297,4 +255,11 @@ void LinearConstructor::output(Mat& HRimg) {
 
 		curIdx ++;
 	}
+}
+
+LinearConstructor::~LinearConstructor()
+{
+	delete HR_pixels;
+	delete LR_pixels;
+	delete relations;
 }
