@@ -6,6 +6,7 @@ SymmConfOptFlow_calc::SymmConfOptFlow_calc()
 	//OptFlow_back = createOptFlow_DualTVL1();
 	OptFlow = new Mod_OpticalFlowDual_TVL1;
 	OptFlow_back = new Mod_OpticalFlowDual_TVL1;
+
 }
 
 void SymmConfOptFlow_calc::calc(InputArray _I0, InputArray _I1, InputOutputArray _flow, InputOutputArray _flow_back, InputOutputArray _conf)
@@ -18,6 +19,11 @@ void SymmConfOptFlow_calc::calc(InputArray _I0, InputArray _I1, InputOutputArray
 	confs.resize(nscales);
 	flows.resize(nscales);
 	flows_back.resize(nscales);
+	
+	bool seeWhichLayer = true;
+	if (seeWhichLayer) {
+		fromWhichLayer = Mat::zeros(_I0.size(), CV_8U);
+	}
 
 	// pyramidal structure for computing the optical flow
     for (int s = nscales - 1; s >= 0; --s)
@@ -33,11 +39,11 @@ void SymmConfOptFlow_calc::calc(InputArray _I0, InputArray _I1, InputOutputArray
 		Mat flow, flow_back, conf;
 		OptFlow->getFlowSpecScale(s, flow);
 		OptFlow_back->getFlowSpecScale(s, flow_back);
-		showConfidence(flow, flow_back, conf);
+		showConfidence(flow, flow_back, conf, 2);
 
 		cout << "getInterpFlowSpecScale" << endl;
 		Mat interp_flow, interp_flow_back, interp_conf;
-		if (s < nscales - 1) {
+		if (/*0 < s &&*/ s < (nscales - 1)) {
 			OptFlow->getInterpFlowSpecScale(s, interp_flow);
 			OptFlow_back->getInterpFlowSpecScale(s, interp_flow_back);
 			showConfidence(interp_flow, interp_flow_back, interp_conf);
@@ -52,19 +58,41 @@ void SymmConfOptFlow_calc::calc(InputArray _I0, InputArray _I1, InputOutputArray
 		flows_back[s] = Mat::zeros(flow_back.rows, flow_back.cols, CV_32FC2);
 		confs[s] = Mat::zeros(flow.rows, flow.cols, CV_64F);
 		for (int i = 0; i < conf.rows; i++) for (int j = 0; j < conf.cols; j++) {
-			if (conf.at<double>(i, j) > interp_conf.at<double>(i, j)) {
-				flows[s].at<Vec2f>(i, j) = flow.at<Vec2f>(i, j);
-				flows_back[s].at<Vec2f>(i, j) = flow_back.at<Vec2f>(i, j);
-				confs[s].at<double>(i, j) = conf.at<double>(i, j);
-			}
-			else {
+			if (conf.at<double>(i, j) < interp_conf.at<double>(i, j)) {		
+			//if (conf.at<double>(i, j) < 0.1 && interp_conf.at<double>(i, j) > 0) {	
 				flows[s].at<Vec2f>(i, j) = interp_flow.at<Vec2f>(i, j);
 				flows_back[s].at<Vec2f>(i, j) = interp_flow_back.at<Vec2f>(i, j);
 				confs[s].at<double>(i, j) = interp_conf.at<double>(i, j);
 			}
+			else {
+				flows[s].at<Vec2f>(i, j) = flow.at<Vec2f>(i, j);
+				flows_back[s].at<Vec2f>(i, j) = flow_back.at<Vec2f>(i, j);
+				confs[s].at<double>(i, j) = conf.at<double>(i, j);
+			}
 		}
 
-        // if this was the last scale, finish now
+		// see which layer
+		if (seeWhichLayer) {
+			Mat fromThisLayer = Mat::zeros(flow.rows, flow.cols, CV_64F);
+
+			for (int i = 0; i < conf.rows; i++) for (int j = 0; j < conf.cols; j++) {
+				if (conf.at<double>(i, j) > interp_conf.at<double>(i, j)) {
+					fromThisLayer.at<double>(i, j) = 1;
+				}
+			}
+
+			resize(fromThisLayer, fromThisLayer, fromWhichLayer.size(), 0, 0, INTER_CUBIC);
+
+			for (int i = 0; i < fromThisLayer.rows; i++) for (int j = 0; j < fromThisLayer.cols; j++) {
+				if (fromThisLayer.at<double>(i, j) >= 0.5) {
+					fromWhichLayer.at<uchar>(i, j) = fromThisLayer.at<double>(i, j) * (255 / nscales) * s;
+				}
+			}
+
+			imwrite("output/FromLayer" + int2str(s) + ".png", fromThisLayer*255);
+		}
+
+		// if this was the last scale, finish now
         if (s == 0)
             break;
 
@@ -72,7 +100,12 @@ void SymmConfOptFlow_calc::calc(InputArray _I0, InputArray _I1, InputOutputArray
         // otherwise, upsample the optical flow
 		OptFlow->setFlowForNextScale(s, flows[s]);
 		OptFlow_back->setFlowForNextScale(s, flows_back[s]);
+		
     }
+
+	if (seeWhichLayer) {
+		imwrite("output/FromWhichLayer.png", fromWhichLayer);
+	}
 
     //Mat uxy[] = {u1s[0], u2s[0]};
     //merge(uxy, 2, _flow);

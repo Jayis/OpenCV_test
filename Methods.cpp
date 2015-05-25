@@ -343,11 +343,12 @@ void showConfidence_new (Mat& flow_forward, Mat& flow_backward, Mat& confidence)
 	}
 }
 
-void showConfidence (Mat& flow_forward, Mat& flow_backward, Mat& confidence)
+void showConfidence (Mat& flow_forward, Mat& flow_backward, Mat& confidence, double sigmaScaler)
 {
 	// use CV_64FC2
 
 	confidence = Mat::zeros(flow_forward.rows, flow_forward.cols, CV_64F);
+	double sigma = SQR(sigmaScaler) * 0.4343;
 
 	int i, j;
 
@@ -386,8 +387,8 @@ void showConfidence (Mat& flow_forward, Mat& flow_backward, Mat& confidence)
 				Vec2f& ij = flow_backward.at<Vec2f> (i_to, j_to);
 				Vec2f& i1j = flow_backward.at<Vec2f> (i_to+1, j_to);
 				confidence.at<double>(i, j) = 
-					portion_i * calcConfidence(cur_flow, ij) + 
-					(1-portion_i) * calcConfidence(cur_flow, i1j);
+					portion_i * calcConfidence(cur_flow, ij, sigma) + 
+					(1-portion_i) * calcConfidence(cur_flow, i1j, sigma);
 			}
 			else if (j_to+1 < confidence.cols) {
 				// i_to == confidence.rows - 1
@@ -396,15 +397,15 @@ void showConfidence (Mat& flow_forward, Mat& flow_backward, Mat& confidence)
 				Vec2f& ij = flow_backward.at<Vec2f> (i_to, j_to);
 				Vec2f& ij1 = flow_backward.at<Vec2f> (i_to, j_to+1);
 				confidence.at<double>(i, j) = 
-					portion_j * calcConfidence(cur_flow, ij) + 
-					(1-portion_j) * calcConfidence(cur_flow, ij1);
+					portion_j * calcConfidence(cur_flow, ij, sigma) + 
+					(1-portion_j) * calcConfidence(cur_flow, ij1, sigma);
 			}
 			else {
 				// i_to == confidence.rows - 1 && j_to == confidence.cols -1
 				Vec2f& ij = flow_backward.at<Vec2f> (i_to, j_to);
 
 				confidence.at<double>(i, j) = 
-					calcConfidence(cur_flow, ij);
+					calcConfidence(cur_flow, ij, sigma);
 			}
 
 
@@ -420,10 +421,10 @@ void showConfidence (Mat& flow_forward, Mat& flow_backward, Mat& confidence)
 		Vec2f& i1j1 = flow_backward.at<Vec2f> (i_to+1, j_to+1);
 
 		confidence.at<double>(i, j) = 
-			portion_i * portion_j * calcConfidence(cur_flow, ij) + 
-			(1-portion_i) * portion_j * calcConfidence(cur_flow, i1j) + 
-			portion_i * (1-portion_j) * calcConfidence(cur_flow, ij1) +
-			(1-portion_i) * (1-portion_j) * calcConfidence(cur_flow, i1j1); 
+			portion_i * portion_j * calcConfidence(cur_flow, ij, sigma) + 
+			(1-portion_i) * portion_j * calcConfidence(cur_flow, i1j, sigma) + 
+			portion_i * (1-portion_j) * calcConfidence(cur_flow, ij1, sigma) +
+			(1-portion_i) * (1-portion_j) * calcConfidence(cur_flow, i1j1, sigma); 
 
 		// it's no longer useful, I guess max_confidence = 1
 		if (confidence.at<double>(i, j) > max_confdence) max_confdence = confidence.at<double>(i, j);
@@ -433,8 +434,8 @@ void showConfidence (Mat& flow_forward, Mat& flow_backward, Mat& confidence)
 	//confidence = EXsmall;
 }
 
-double ExpNegSQR (double x, double y) {
-	double sigma = 0.4343; // make one pixel far decay to 0.1
+double ExpNegSQR (double x, double y, double sigma) {
+	//double sigma = 0.4343; // make one pixel far decay to 0.1
 	//double sigma = 0.2171; // make one pixel far decay to 0.01
 	//double sigma = 0.1448; // make one pixel far decay to 0.001
 
@@ -442,13 +443,13 @@ double ExpNegSQR (double x, double y) {
 	//return (double) ((SQR(x) < 1)&&(SQR(y) < 1));
 }
 
-double calcConfidence (Vec2f& f, Vec2f& b)
+double calcConfidence (Vec2f& f, Vec2f& b, double sigma)
 {
 	double diff_x, diff_y;
 	diff_x = f[0] + b[0];
 	diff_y = f[1] + b[1];
 
-	return ExpNegSQR(diff_x, diff_y);
+	return ExpNegSQR(diff_x, diff_y, sigma);
 }
 
 void ImgPreProcess (vector<Mat>& LR_imgs, vector<Mat>& output)

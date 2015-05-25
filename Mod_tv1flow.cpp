@@ -128,8 +128,8 @@ void Mod_OpticalFlowDual_TVL1::calc_part2(InputOutputArray _flow)
         // otherwise, upsample the optical flow
 
         // zoom the optical flow for the next finer scale
-        resize(u1s[s], u1s[s - 1], I0s[s - 1].size());
-        resize(u2s[s], u2s[s - 1], I0s[s - 1].size());
+        resize(u1s[s], u1s[s - 1], I0s[s - 1].size(), 0, 0, INTER_CUBIC);
+		resize(u2s[s], u2s[s - 1], I0s[s - 1].size(), 0, 0, INTER_CUBIC);
 
         // scale the optical flow with the appropriate zoom factor
         multiply(u1s[s - 1], Scalar::all(2), u1s[s - 1]);

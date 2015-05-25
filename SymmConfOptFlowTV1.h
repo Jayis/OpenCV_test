@@ -21,4 +21,5 @@ private:
 	int nscales;
 
 	vector<Mat> confs, flows, flows_back;
+	Mat fromWhichLayer;
 };

@@ -33,11 +33,11 @@ void NaiveForwardNNWarp (Mat& source, Mat& flow, Mat& output, int ch);
 
 void showConfidence_new (Mat& flow_forward, Mat& flow_backward, Mat& confidence);
 
-void showConfidence (Mat& flow_forward, Mat& flow_backward, Mat& confidence);
+void showConfidence (Mat& flow_forward, Mat& flow_backward, Mat& confidence, double sigmaScaler = 1);
 
-double ExpNegSQR (double x);
+double ExpNegSQR (double x, double y, double sigma = 0.4343);
 
-double calcConfidence (Vec2f& f, Vec2f& b);
+double calcConfidence (Vec2f& f, Vec2f& b, double sigma = 0.4343);
 
 void ImgPreProcess (vector<Mat>& LR_imgs, vector<Mat>& output);
 

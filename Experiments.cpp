@@ -360,7 +360,7 @@ void flow2H_test () {
 }
 
 void LinearConstruct_test () {
-	String test_set = "global_align";	
+	String test_set = "res256";	
 	int n = 4;
 
 	vector<Mat> imgsC1;
@@ -475,7 +475,7 @@ void LinearConstruct_test () {
 		OptFlow->calc(preProsImgs[0], preProsImgs[k], newFlows_back[k]);
 		showConfidence (newFlows[k], newFlows_back[k], newConfs[k]);		
 		/**/
-		
+		/*
 		OptFlow->calc(blurImg[k], blurImg[0], blur_flows[k]);
 		OptFlow->calc(blurImg[0], blurImg[k], blur_flows_back[k]);
 		showConfidence (blur_flows[k], blur_flows_back[k], blur_confs[k]);
