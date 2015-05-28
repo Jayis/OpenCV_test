@@ -39,14 +39,14 @@ void SymmConfOptFlow_calc::calc(InputArray _I0, InputArray _I1, InputOutputArray
 		Mat flow, flow_back, conf;
 		OptFlow->getFlowSpecScale(s, flow);
 		OptFlow_back->getFlowSpecScale(s, flow_back);
-		showConfidence(flow, flow_back, conf, 2);
+		showConfidence(flow, flow_back, conf);
 
 		cout << "getInterpFlowSpecScale" << endl;
 		Mat interp_flow, interp_flow_back, interp_conf;
 		if (/*0 < s &&*/ s < (nscales - 1)) {
 			OptFlow->getInterpFlowSpecScale(s, interp_flow);
 			OptFlow_back->getInterpFlowSpecScale(s, interp_flow_back);
-			showConfidence(interp_flow, interp_flow_back, interp_conf);
+			showConfidence(interp_flow, interp_flow_back, interp_conf, 0.5);
 		}
 		else {
 			interp_conf = -1 * Mat::ones(flow.rows, flow.cols, CV_64F);
