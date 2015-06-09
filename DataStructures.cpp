@@ -115,7 +115,46 @@ InfluenceRelation::InfluenceRelation(vector<Mat>& imgs,
 	double pos_x, pos_y, bucket_center_x, bucket_center_y, dist_x, dist_y, dx, dy, offset_x, offset_y;;
 	int bucket_idx_i, bucket_idx_j, super_offset_x, super_offset_y;
 	
+	int link_count = 0;
+	// pre-count link size, to allocate specific amount
+	for (k = 0; k < LR_imgCount; k++) {
+		// for each pixel
+		for (i = 0; i < LR_rows; i++) {
+			for (j = 0; j < LR_cols; j++) {
+				Vec2f& tmp_flow = flows[k].at<Vec2f>(i,j);
+				pos_x = (j + tmp_flow[0] + 0.5) * scale;
+				pos_y = (i + tmp_flow[1] + 0.5 ) * scale;
+
+				// add to those buckets within radius
+				// for each possible bucket
+				for (y = -PSF_radius_y-1; y < PSF_radius_y + 3; y++) {
+					for (x = -PSF_radius_x-1; x < PSF_radius_y + 3; x++) {
+						bucket_idx_i = pos_y + y;
+						bucket_idx_j = pos_x + x;
+						bucket_center_x = bucket_idx_j + 0.5;
+						bucket_center_y = bucket_idx_i + 0.5;
+						// check if bucket exist
+						if (bucket_center_x < 0 || bucket_center_y < 0 || bucket_center_y >= HR_rows || bucket_center_x >= HR_cols)
+							continue;
+						// check if within PSF_radius
+						dx = pos_x - bucket_center_x;
+						dy = pos_y - bucket_center_y;
+						dist_x = abs(dx);
+						dist_y = abs(dy);
+						if (dist_x-0.5 > PSF_radius_x || dist_y-0.5 > PSF_radius_y)
+							continue;
+
+						// count ++
+						link_count++;
+					}
+				}
+			}
+		}
+	}
+
 	// start record
+	influence_links.reserve(link_count);
+	perception_links.reserve(link_count);
 	// for each image
 	for (k = 0; k < LR_imgCount; k++) {
 		// for each pixel

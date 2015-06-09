@@ -20,7 +20,7 @@ void SymmConfOptFlow_calc::calc(InputArray _I0, InputArray _I1, InputOutputArray
 	flows.resize(nscales);
 	flows_back.resize(nscales);
 	
-	bool seeWhichLayer = true;
+	bool seeWhichLayer = false;
 	if (seeWhichLayer) {
 		fromWhichLayer = Mat::zeros(_I0.size(), CV_8U);
 	}
@@ -43,10 +43,10 @@ void SymmConfOptFlow_calc::calc(InputArray _I0, InputArray _I1, InputOutputArray
 
 		cout << "getInterpFlowSpecScale" << endl;
 		Mat interp_flow, interp_flow_back, interp_conf;
-		if (/*0 < s &&*/ s < (nscales - 1)) {
+		if (0 < s && s < (nscales - 1)) {
 			OptFlow->getInterpFlowSpecScale(s, interp_flow);
 			OptFlow_back->getInterpFlowSpecScale(s, interp_flow_back);
-			showConfidence(interp_flow, interp_flow_back, interp_conf, 0.5);
+			showConfidence(interp_flow, interp_flow_back, interp_conf);
 		}
 		else {
 			interp_conf = -1 * Mat::ones(flow.rows, flow.cols, CV_64F);

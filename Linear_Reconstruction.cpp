@@ -5,7 +5,7 @@ LinearConstructor::LinearConstructor( vector<Mat>& LR_imgs, vector<Mat>& flows, 
 
 	int i, j, k;
 
-	interp_scale = 1000;
+	interp_scale = 512;
 
 	LR_rows = LR_imgs[0].rows;
 	LR_cols = LR_imgs[0].cols;
@@ -22,8 +22,10 @@ LinearConstructor::LinearConstructor( vector<Mat>& LR_imgs, vector<Mat>& flows, 
 
 	//----- for every pixel x of HR image, record influenced pixel y
 	// initialize bucket
+	cout << "alloc HR_pix_array\n";
 	HR_pixels = new HR_Pixel_Array(HR_rows, HR_cols);
 	// initialize influenced pixels (for each pixel in each LR img)
+	cout << "alloc LR_pix_array\n";
 	LR_pixels = new LR_Pixel_Array(LR_imgCount, LR_rows, LR_cols);
 	//
 	/*formInfluenceRelation (LR_imgs,
@@ -57,7 +59,7 @@ LinearConstructor::LinearConstructor( vector<Mat>& LR_imgs, vector<Mat>& flows, 
 
 	int i, j, k;
 
-	interp_scale = 1000;
+	interp_scale = 512;
 
 	LR_rows = LR_imgs[0].rows;
 	LR_cols = LR_imgs[0].cols;
@@ -74,7 +76,9 @@ LinearConstructor::LinearConstructor( vector<Mat>& LR_imgs, vector<Mat>& flows, 
 
 	//----- for every pixel x of HR image, record influenced pixel y
 	// initialize bucket
+	cout << "alloc HR_pix_array\n";
 	HR_pixels = new HR_Pixel_Array(HR_rows, HR_cols);
+	cout << "alloc LR_pix_array\n";
 	// initialize influenced pixels (for each pixel in each LR img)
 	LR_pixels = new LR_Pixel_Array(LR_imgCount, LR_rows, LR_cols);
 	//
@@ -107,6 +111,9 @@ void LinearConstructor::addDataFidelity( ) {
 
 	int sourcePos2ColIdx;
 
+	A_triplets.reserve(relations->perception_links.size());
+	b_vec.reserve(LR_imgCount*LR_pixelCount);
+
 	for (int k = 0; k < LR_imgCount; k++) {
 
 		for (int ii = 0; ii < LR_rows; ii++) for (int jj = 0; jj < LR_cols; jj++) {
@@ -135,6 +142,9 @@ void LinearConstructor::addDataFidelityWithConf(vector<Mat>& conf ) {
 
 	int sourcePos2ColIdx;
 	double curConf;
+
+	A_triplets.reserve(relations->perception_links.size());
+	b_vec.reserve(LR_imgCount*LR_pixelCount);
 
 	for (int k = 0; k < LR_imgCount; k++) {
 
@@ -165,6 +175,9 @@ void LinearConstructor::addRegularization_grad2norm(double gamma) {
 
 	int HR2ColIdx, cur_HR_idx;
 	double sqrtGamma = sqrt(gamma);
+
+	A_triplets.reserve(A_triplets.size() + 4 * HR_pixelCount);
+	b_vec.reserve(b_vec.size() + 2 * HR_pixelCount);
 
 	// Grad x
 	for (int i = 0; i < HR_rows; i++) for (int j = 0; j < HR_cols - 1; j++) {

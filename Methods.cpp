@@ -101,6 +101,7 @@ void formInfluenceRelation (vector<Mat>& imgs,
 
 void preInterpolation ( Mat& PSF, Mat& super_PSF, double PSF_scale )
 {
+	cout << "interpolate with scale: " << PSF_scale << "\n";
 	// make sure the skirt of PSF is ZERO!!
 	Mat tmp_PSF = Mat::zeros(PSF.rows+2, PSF.cols+2, CV_64F);
 	for (int i = 0; i < PSF.rows; i ++) for (int j = 0; j < PSF.cols; j++)
@@ -684,7 +685,7 @@ void DivideToBlocksToConstruct(vector<Mat>& BigLRimgs, vector<Mat>& BigFlows, ve
 
 	int longSide = (BigLR_rows > BigLR_cols) ? BigLR_rows : BigLR_cols;
 	int totalBlocksCount = 0;
-	totalBlocksCount = pow(4, floor(log(longSide/128.f)/log(2.0f))); // origin: ceil
+	totalBlocksCount = pow(4, floor(log(longSide/100.f)/log(2.0f))); // origin: ceil
 
 	double blockPerAxis = sqrt(totalBlocksCount);
 	cout << endl << "Total Blocks: " << blockPerAxis << endl;
