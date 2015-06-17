@@ -5,6 +5,7 @@
 #include <opencv2\core\core.hpp>
 #include <opencv2\imgproc\imgproc.hpp>
 #include <Eigen\Sparse>
+#include <opencv2\legacy\legacy.hpp>
 
 #include "DataStructures.h"
 #include "Linear_Reconstruction.h"
@@ -65,3 +66,11 @@ double MySpMat_dot (vector<Element>& a, vector<Element>& b);
 void DivideToBlocksToConstruct(vector<Mat>& BigLRimgs, vector<Mat>& BigFlows, vector<Mat>& BigConfs, Mat& PSF, double scale, Mat& BigHRimg);
 // 
 void weightedNeighborWarp (vector<vector<HR_Pixel> >& HR_pixels, Mat& HRimg);
+
+void warpImageByFlow (Mat& colorImg, Mat& flow, Mat& output);
+
+void outputHRcolor (Mat& HRimgC1, Mat& LRimg, Mat& HRimgC3);
+
+void specialBlur (Mat& input, Mat& output);
+// 
+void optFlowHS (Mat& prev, Mat& curr, Mat& flow);

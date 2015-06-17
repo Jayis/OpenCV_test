@@ -387,9 +387,17 @@ void showConfidence (Mat& flow_forward, Mat& flow_backward, Mat& confidence, dou
 				portion_i = 1 - (tmp_forwpos[0] - i_to);
 				Vec2f& ij = flow_backward.at<Vec2f> (i_to, j_to);
 				Vec2f& i1j = flow_backward.at<Vec2f> (i_to+1, j_to);
+
+				Vec2f interpFlow = 
+					portion_i * ij + 
+					(1-portion_i) * i1j;
+
+				confidence.at<double>(i, j) = calcConfidence(cur_flow, interpFlow, sigma);
+				/*
 				confidence.at<double>(i, j) = 
 					portion_i * calcConfidence(cur_flow, ij, sigma) + 
 					(1-portion_i) * calcConfidence(cur_flow, i1j, sigma);
+					/**/
 			}
 			else if (j_to+1 < confidence.cols) {
 				// i_to == confidence.rows - 1
@@ -397,9 +405,18 @@ void showConfidence (Mat& flow_forward, Mat& flow_backward, Mat& confidence, dou
 				portion_j = 1 - (tmp_forwpos[1] - j_to);
 				Vec2f& ij = flow_backward.at<Vec2f> (i_to, j_to);
 				Vec2f& ij1 = flow_backward.at<Vec2f> (i_to, j_to+1);
+
+				Vec2f interpFlow = 
+					portion_j * ij + 
+					(1-portion_j) * ij1;
+
+				confidence.at<double>(i, j) = calcConfidence(cur_flow, interpFlow, sigma);
+
+				/*
 				confidence.at<double>(i, j) = 
 					portion_j * calcConfidence(cur_flow, ij, sigma) + 
 					(1-portion_j) * calcConfidence(cur_flow, ij1, sigma);
+					/**/
 			}
 			else {
 				// i_to == confidence.rows - 1 && j_to == confidence.cols -1
@@ -421,12 +438,20 @@ void showConfidence (Mat& flow_forward, Mat& flow_backward, Mat& confidence, dou
 		Vec2f& ij1 = flow_backward.at<Vec2f> (i_to, j_to+1);
 		Vec2f& i1j1 = flow_backward.at<Vec2f> (i_to+1, j_to+1);
 
+		Vec2f interpFlow = 
+			portion_i * portion_j * ij + 
+			(1-portion_i) * portion_j * i1j + 
+			portion_i * (1-portion_j) * ij1 +
+			(1-portion_i) * (1-portion_j) * i1j1; 
+
+		confidence.at<double>(i, j) = calcConfidence(cur_flow, interpFlow, sigma);
+		/*
 		confidence.at<double>(i, j) = 
 			portion_i * portion_j * calcConfidence(cur_flow, ij, sigma) + 
 			(1-portion_i) * portion_j * calcConfidence(cur_flow, i1j, sigma) + 
 			portion_i * (1-portion_j) * calcConfidence(cur_flow, ij1, sigma) +
 			(1-portion_i) * (1-portion_j) * calcConfidence(cur_flow, i1j1, sigma); 
-
+		/**/
 		// it's no longer useful, I guess max_confidence = 1
 		if (confidence.at<double>(i, j) > max_confdence) max_confdence = confidence.at<double>(i, j);
 	}
@@ -801,3 +826,98 @@ void DivideToBlocksToConstruct(vector<Mat>& BigLRimgs, vector<Mat>& BigFlows, ve
 //	}
 //
 //}
+
+void warpImageByFlow (Mat& colorImg, Mat& flow, Mat& output) {
+
+	Mat map_x(flow.size(), CV_32FC1);
+	Mat map_y(flow.size(), CV_32FC1);
+	for (int y = 0; y < map_x.rows; ++y)
+	{
+		for (int x = 0; x < map_x.cols; ++x)
+		{
+			Point2f f = flow.at<Point2f>(y, x);
+			map_x.at<float>(y, x) = x + f.x;
+			map_y.at<float>(y, x) = y + f.y;
+		}
+	}
+
+	remap(colorImg, output, map_x, map_y, CV_INTER_CUBIC);
+
+}
+
+void outputHRcolor (Mat& HRimgC1, Mat& LRimg, Mat& HRimgC3) {
+
+	Mat tmp, tmp2;
+	cvtColor(LRimg, tmp, CV_BGR2YCrCb);
+	resize(tmp, tmp2, HRimgC1.size(), 0, 0, CV_INTER_CUBIC);
+
+	if (HRimgC1.type() == CV_64F) {
+		for (int i = 0; i < tmp2.rows; i++) for (int j = 0; j < tmp2.cols; j++)
+		{
+			tmp2.at<Vec3b>(i, j)[0] = saturate_cast<uchar>(HRimgC1.at<double>(i, j));
+		}
+	}
+	else if (HRimgC1.type() == CV_8U) {
+		for (int i = 0; i < tmp2.rows; i++) for (int j = 0; j < tmp2.cols; j++)
+		{
+			tmp2.at<Vec3b>(i, j)[0] = HRimgC1.at<uchar>(i, j);
+		}
+	}
+
+	cvtColor(tmp2, HRimgC3, CV_YCrCb2BGR);
+
+}
+
+void specialBlur (Mat& input, Mat& output) {
+	Mat tmp, tmp2;
+	Mat peak, cut;
+
+	Laplacian(input, tmp, CV_64F, 1, 1, 0, BORDER_REPLICATE );
+	peak = Mat::zeros(input.size(), CV_64F);
+	peak = tmp * (-0.25);
+	imwrite("output/peak.bmp", peak);
+	subtract(input, peak, cut, noArray(), CV_64F);
+	imwrite("output/cut.bmp", cut);
+	//cut = input - peak;
+	cut.convertTo(output, CV_8U);
+
+	/*
+	GaussianBlur(peak, tmp2, Size(0,0), 1, 1, BORDER_REPLICATE);
+	cout << "nn";
+	add(cut, tmp2, output, noArray(), CV_8U);
+	imwrite("output/out.bmp", output);
+	/**/
+	//output = cut + tmp2;
+
+}
+
+void optFlowHS (Mat& from, Mat& to, Mat& flow)
+{
+
+	uchar *tmpF = (uchar*)malloc(from.rows * from.cols), *tmpT = (uchar*)malloc(from.rows * from.cols); 
+	CvMat prev = cvMat( from.rows, from.cols, CV_8U,  tmpF),
+		curr = cvMat( to.rows, to.cols, CV_8U,  tmpT);
+	cout << "gg";
+	
+	float *tmpx = (float*)malloc(from.rows * from.cols), *tmpy = (float*)malloc(from.rows * from.cols);
+	CvMat velx = cvMat( from.rows, from.cols, CV_32F,  tmpx),
+		vely = cvMat( to.rows, to.cols, CV_32F, tmpy);
+	CvTermCriteria criteria;
+	criteria.type = CV_TERMCRIT_ITER;
+	criteria.max_iter = 200;
+	criteria.epsilon = 0.1;
+	cout << "hh";
+	cvCalcOpticalFlowHS(&prev, &curr, 0, &velx, &vely, 1, criteria);
+
+	flow = Mat::zeros(from.size(), CV_32FC2);
+	cout << "jj";
+	for (int i = 0; i < flow.rows; i++) for (int j = 0; j < flow.cols; j++)
+	{
+		Vec2f& tmp = flow.at<Vec2f>(i, j);
+
+		tmp[0] = CV_MAT_ELEM(velx, float, i, j);
+		tmp[1] = CV_MAT_ELEM(vely, float, i, j);
+
+	}
+
+}

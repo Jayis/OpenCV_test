@@ -5,7 +5,7 @@ Mod_OpticalFlowDual_TVL1::Mod_OpticalFlowDual_TVL1()
     tau            = 0.25;
     lambda         = 0.15;
     theta          = 0.3;
-    nscales        = 5;
+    nscales        = 7;
     warps          = 5;
     epsilon        = 0.01;
     iterations     = 300;

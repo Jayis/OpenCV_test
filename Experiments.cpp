@@ -25,7 +25,7 @@ void symmetricOptFlow_test() {
 		SymmConfOptFlow_calc symmOptFlow;
 		symmOptFlow.calc(imgsC1[k], imgsC1[0], flows[k], flows_back[k], confs[k]);
 
-		imwrite("output/symmConf_" + test_set + int2str(k) + "to0.bmp", confs[k]*255);
+		imwrite("output/symmConfHigher_" + test_set + int2str(k) + "to0.bmp", confs[k]*255);
 	}
 
 	Mat dot = Mat::zeros(5,5,CV_64F);
@@ -57,7 +57,7 @@ void symmetricOptFlow_test() {
 	linearConstructor.output(HRimg);
 	/**/
 	
-	imwrite("output/" + test_set + "_LinearConstruct_HR" + int2str(n) + "_SymmConf.bmp", HRimg);
+	imwrite("output/" + test_set + "_LinearConstruct_HR" + int2str(n) + "_SymmConf_alwayschoosehigher.bmp", HRimg);
 	
 	/*writeImgDiff(imread("output/" + test_set + "_LinearConstruct_HR" + int2str(n) + "_CG.bmp", CV_LOAD_IMAGE_GRAYSCALE),
 		imread("Origin/" + test_set + "Ori_01.bmp", CV_LOAD_IMAGE_GRAYSCALE),
@@ -360,7 +360,7 @@ void flow2H_test () {
 }
 
 void LinearConstruct_test () {
-	String test_set = "res2000";	
+	String test_set = "res256";	
 	int n = 4;
 
 	vector<Mat> imgsC1;
@@ -378,6 +378,10 @@ void LinearConstruct_test () {
 	vector<Mat> blur_flows;
 	vector<Mat> blur_flows_back;
 	vector<Mat> blur_confs;
+
+	vector<Mat> symm_flows;
+	vector<Mat> symm_flows_back;
+	vector<Mat> symm_confs;
 
 	vector<Mat> combineFlows;
 	vector<Mat> combineConfs;
@@ -405,12 +409,26 @@ void LinearConstruct_test () {
 	combineFlows2.resize(n);
 	combineConfs2.resize(n);
 
+	symm_flows.resize(n);
+	symm_flows_back.resize(n);
+	symm_confs.resize(n);
+
 	int sigma = 0;
 	cout << "read in images\n";
+	Mat tmp[2];
 	for (int k = 0; k < n; k++) {
 		imgsC1[k] = imread("input/" + test_set + "_0" + int2str(k+1) + ".bmp", CV_LOAD_IMAGE_GRAYSCALE);
-		//imgsC3[k] = imread("input/" + test_set + "_0" + int2str(k+1) + ".bmp", CV_LOAD_IMAGE_COLOR);
-		//GaussianBlur( imgsC1[k], blurImg[k], Size( floor(sigma*2 + 9), floor(sigma*2 + 9)), sigma, sigma );
+		imgsC3[k] = imread("input/" + test_set + "_0" + int2str(k+1) + ".bmp", CV_LOAD_IMAGE_COLOR);
+		GaussianBlur( imgsC1[k], blurImg[k], Size( floor(sigma*2 + 9), floor(sigma*2 + 9)), sigma, sigma );
+
+		//specialBlur(imgsC1[k], preProsImgs[k]);
+		/*
+		tmp[0] = imgsC1[k];
+		for (int i = 0; i < 4; i++) {
+			bilateralFilter(tmp[k%2], tmp[(k+1)%2], 0, 6, 4, BORDER_REPLICATE );
+		}
+		blurImg[k] = tmp[(k+1)%2];
+		*/
 	}
 	//ImgPreProcess(imgsC1, preProsImgs);
 
@@ -422,17 +440,19 @@ void LinearConstruct_test () {
 
 	for (int k = 0; k < n; k++) {
 		//imwrite("output/ImgPre_" + test_set + int2str(k) + ".bmp", preProsImgs[k]);
-		//imwrite("output/Blur_" + test_set + int2str(k) + ".bmp", blurImg[k]);
+		//imwrite("output/BlurGaussian" + int2str(sigma) + "_" + test_set + int2str(k) + ".bmp", blurImg[k]);
 
 		time(&time0);
 
-		//calcOpticalFlowFarneback(imgsC1[k], imgsC1[0], flows[k], 0.5, 5, 3, 500, 5, 1.1, OPTFLOW_FARNEBACK_GAUSSIAN);
-		//calcOpticalFlowFarneback(imgsC1[0], imgsC1[k], flows_back[k], 0.5, 5, 3, 500, 5, 1.1, OPTFLOW_FARNEBACK_GAUSSIAN);
+		optFlowHS(imgsC1[k], imgsC1[0], flows[k]);
+		optFlowHS(imgsC1[0], imgsC1[k], flows[k]);
+		//calcOpticalFlowFarneback(imgsC1[k], imgsC1[0], flows[k], 0.5, 5, 1, 300, 19, 2.3, OPTFLOW_FARNEBACK_GAUSSIAN);
+		//calcOpticalFlowFarneback(imgsC1[0], imgsC1[k], flows_back[k], 0.5, 5, 1, 300, 19, 2.3, OPTFLOW_FARNEBACK_GAUSSIAN);
 		//calcOpticalFlowSF(imgsC3[k], imgsC3[0], flows[k], 5, 1, 3);
 		//calcOpticalFlowSF(imgsC3[0], imgsC3[k], flows_back[k], 5, 1, 3);
-		//showConfidence (flows[k], flows_back[k], confs[k]);
+		showConfidence (flows[k], flows_back[k], confs[k]);
 		/**/		
-		
+		/*
 		OptFlow->calc(imgsC1[k], imgsC1[0], flows[k]);
 		OptFlow->calc(imgsC1[0], imgsC1[k], flows_back[k]);
 		showConfidence (flows[k], flows_back[k], confs[k]);
@@ -451,6 +471,11 @@ void LinearConstruct_test () {
 		OptFlow->calc(blurImg[0], blurImg[k], blur_flows_back[k]);
 		showConfidence (blur_flows[k], blur_flows_back[k], blur_confs[k]);
 		/**/
+		/*
+		SymmConfOptFlow_calc symmOptFlow;
+		symmOptFlow.calc(blurImg[k], blurImg[0], symm_flows[k], symm_flows_back[k], symm_confs[k]);
+		/**/
+		
 
 		time(&time1);
 		cout << "flow" << int2str(k) << ": " << difftime(time1, time0) << endl;
@@ -459,7 +484,8 @@ void LinearConstruct_test () {
 		//imwrite("output/SFconf_" + test_set + int2str(k) + "to0.bmp", confs[k]*254);
 		imwrite("output/conf_" + test_set + int2str(k) + "to0.bmp", confs[k]*254);
 		//imwrite("output/newConf_" + test_set + int2str(k) + "to0.bmp", newConfs[k]*254);
-		//imwrite("output/blurConf_" + test_set + int2str(k) + "to0.bmp", blur_confs[k]*254);
+		//imwrite("output/blurConfGaussian" + int2str(sigma) + "_" +  test_set + int2str(k) + "to0.bmp", blur_confs[k]*254);
+		//imwrite("output/symmConfHigher_" + test_set + int2str(k) + "to0.bmp", symm_confs[k]*255);
 		
 	}
 	//getBetterFlow(confs, flows, newConfs, newFlows, combineConfs2, combineFlows2);
@@ -505,9 +531,14 @@ void LinearConstruct_test () {
 		//confs[k].resize(0, 0);
 		//newFlows[k].resize(0, 0);
 		//newConfs[k].resize(0, 0);
+		/*
+		combineConfs[k] = confs[k];
+		combineFlows[k] = flows[k];
+		/**/
 
 		combineConfs[k] = confs[k];
 		combineFlows[k] = flows[k];
+		/**/
 		//imwrite("output/combineConfs_" + test_set + int2str(k) + "to0.bmp", combineConfs[k]*254);	
 
 	}
@@ -549,7 +580,7 @@ void LinearConstruct_test () {
 	PSF.at<double>(1,1) = 0.2042;
 	*/
 	
-	Mat HRimg;
+	Mat HRimg, HRimgC3;
 	/*
 	TermCriteria BPstop;
 	BPstop.type = TermCriteria::COUNT + TermCriteria::EPS;
@@ -569,8 +600,9 @@ void LinearConstruct_test () {
 	linearConstructor.solve_byCG();
 	linearConstructor.output(HRimg);
 	/**/
-	
-	imwrite("output/" + test_set + "_LinearConstruct_HR" + int2str(n) + "_Gaussian" + int2str(sigma) + "_SF.bmp", HRimg);
+	imwrite("output/" + test_set + "_LinearConstruct_HRC1_" + int2str(n) + "_Gaussian" + int2str(sigma) + ".bmp", HRimg);
+	outputHRcolor(HRimg, imgsC3[0], HRimgC3);
+	imwrite("output/" + test_set + "_LinearConstruct_HRC3_" + int2str(n) + "_Gaussian" + int2str(sigma) + ".bmp", HRimgC3);
 	
 	/*writeImgDiff(imread("output/" + test_set + "_LinearConstruct_HR" + int2str(n) + "_CG.bmp", CV_LOAD_IMAGE_GRAYSCALE),
 		imread("Origin/" + test_set + "Ori_01.bmp", CV_LOAD_IMAGE_GRAYSCALE),
