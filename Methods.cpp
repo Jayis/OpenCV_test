@@ -831,9 +831,9 @@ void warpImageByFlow (Mat& colorImg, Mat& flow, Mat& output) {
 
 	Mat map_x(flow.size(), CV_32FC1);
 	Mat map_y(flow.size(), CV_32FC1);
-	for (int y = 0; y < map_x.rows; ++y)
+	for (int y = 0; y < map_x.rows; y++)
 	{
-		for (int x = 0; x < map_x.cols; ++x)
+		for (int x = 0; x < map_x.cols; x++)
 		{
 			Point2f f = flow.at<Point2f>(y, x);
 			map_x.at<float>(y, x) = x + f.x;
@@ -920,4 +920,17 @@ void optFlowHS (Mat& from, Mat& to, Mat& flow)
 
 	}
 
+}
+
+void calcVecMatDiff (Mat& a, Mat& b, Mat& output)
+{
+	output = Mat::zeros(a.size(), CV_64F);
+
+	for (int i = 0; i < a.rows; i++) for (int j = 0; j < a.cols; j++)
+	{
+		Vec2f& tmp1 = a.at<Vec2f>(i, j);
+		Vec2f& tmp2 = b.at<Vec2f>(i, j);
+
+		output.at<double>(i, j) = ExpNegSQR(tmp1[0]-tmp2[0], tmp1[1]-tmp2[1]);
+	}
 }

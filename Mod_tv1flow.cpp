@@ -2,10 +2,10 @@
 
 Mod_OpticalFlowDual_TVL1::Mod_OpticalFlowDual_TVL1()
 {
-    tau            = 0.25;
+    tau            = 0.25; // default = 0.25
     lambda         = 0.15;
     theta          = 0.3;
-    nscales        = 7;
+    nscales        = 9; // default = 5
     warps          = 5;
     epsilon        = 0.01;
     iterations     = 300;
@@ -155,8 +155,8 @@ void Mod_OpticalFlowDual_TVL1::getInterpFlowSpecScale(int s, Mat& output)
 {
 	Mat_<float> tmp1, tmp2;
 	// zoom the optical flow for the next finer scale
-	resize(u1s[s + 1], tmp1, I0s[s].size());
-	resize(u2s[s + 1], tmp2, I0s[s].size());
+	resize(u1s[s + 1], tmp1, I0s[s].size(), 0, 0, INTER_CUBIC);
+	resize(u2s[s + 1], tmp2, I0s[s].size(), 0, 0, INTER_CUBIC);
 	// scale the optical flow with the appropriate zoom factor
 	multiply(tmp1, Scalar::all(2), tmp1);
 	multiply(tmp2, Scalar::all(2), tmp2);
@@ -171,12 +171,17 @@ void Mod_OpticalFlowDual_TVL1::setFlowForNextScale(int s, Mat& flow)
 	split(flow, mv);
 
 	// zoom the optical flow for the next finer scale
-	resize(mv[0], u1s[s - 1], I0s[s - 1].size());
-	resize(mv[1], u2s[s - 1], I0s[s - 1].size());
+	resize(mv[0], u1s[s - 1], I0s[s - 1].size(), 0, 0, INTER_CUBIC);
+	resize(mv[1], u2s[s - 1], I0s[s - 1].size(), 0, 0, INTER_CUBIC);
 	
 	// scale the optical flow with the appropriate zoom factor
 	multiply(u1s[s - 1], Scalar::all(2), u1s[s - 1]);
 	multiply(u2s[s - 1], Scalar::all(2), u2s[s - 1]);
+}
+
+Mat& Mod_OpticalFlowDual_TVL1::getI0SpecScale(int s)
+{
+	return I0s[s];
 }
 
 ////////////////////////////////////////////////////////////
