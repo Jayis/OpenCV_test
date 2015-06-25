@@ -194,8 +194,8 @@ InfluenceRelation::InfluenceRelation(vector<Mat>& imgs,
 						offset_x = (dx) + BPk_radius_x + 0.5;
 						offset_y = (dy) + BPk_radius_y + 0.5;
 						// if offset is just on the edge of PSF
-						if (offset_x == BPk_radius_x * 2 + 1) offset_x -= EXsmall;
-						if (offset_y == BPk_radius_y * 2 + 1) offset_y -= EXsmall;
+						if (offset_x == BPk_radius_x * 2 + 1) offset_x -= EX_small;
+						if (offset_y == BPk_radius_y * 2 + 1) offset_y -= EX_small;
 						super_offset_x = offset_x * interp_scale;
 						super_offset_y = offset_y * interp_scale;
 						tmp_pix.hBP = super_BPk.at<double>(super_offset_x, super_offset_y);
@@ -213,8 +213,8 @@ InfluenceRelation::InfluenceRelation(vector<Mat>& imgs,
 						// ----- hpsf
 						offset_x = (dx) + PSF_radius_x + 0.5;
 						offset_y = (dy) + PSF_radius_y + 0.5;
-						if (offset_x == PSF_radius_x * 2 + 1) offset_x -= EXsmall;
-						if (offset_y == PSF_radius_y * 2 + 1) offset_y -= EXsmall;
+						if (offset_x == PSF_radius_x * 2 + 1) offset_x -= EX_small;
+						if (offset_y == PSF_radius_y * 2 + 1) offset_y -= EX_small;
 						super_offset_x = offset_x * interp_scale;
 						super_offset_y = offset_y * interp_scale;
 						tmp_pix2.hPSF = super_PSF.at<double>(super_offset_x, super_offset_y);

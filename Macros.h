@@ -3,7 +3,8 @@
 #include <Eigen\SparseCore>
 #include <Eigen\Sparse>
 
-#define EXsmall (1e-8)
+#define EX_small (1e-8)
+#define EX_big (1e8)
 #define SQR(x) ((x)*(x))
 
 typedef Eigen::Triplet<double> T;

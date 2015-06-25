@@ -68,8 +68,8 @@ void formInfluenceRelation (vector<Mat>& imgs,
 						offset_x = (dx) + BPk_radius_x + 0.5;
 						offset_y = (dy) + BPk_radius_y + 0.5;
 						// if offset is just on the edge of PSF
-						if (offset_x == BPk_radius_x * 2 + 1) offset_x -= EXsmall;
-						if (offset_y == BPk_radius_y * 2 + 1) offset_y -= EXsmall;
+						if (offset_x == BPk_radius_x * 2 + 1) offset_x -= EX_small;
+						if (offset_y == BPk_radius_y * 2 + 1) offset_y -= EX_small;
 						super_offset_x = offset_x * interp_scale;
 						super_offset_y = offset_y * interp_scale;
 						tmp_pix.hBP = super_BPk.at<double>(super_offset_x, super_offset_y);
@@ -83,8 +83,8 @@ void formInfluenceRelation (vector<Mat>& imgs,
 						// ----- hpsf
 						offset_x = (dx) + PSF_radius_x + 0.5;
 						offset_y = (dy) + PSF_radius_y + 0.5;
-						if (offset_x == PSF_radius_x * 2 + 1) offset_x -= EXsmall;
-						if (offset_y == PSF_radius_y * 2 + 1) offset_y -= EXsmall;
+						if (offset_x == PSF_radius_x * 2 + 1) offset_x -= EX_small;
+						if (offset_y == PSF_radius_y * 2 + 1) offset_y -= EX_small;
 						super_offset_x = offset_x * interp_scale;
 						super_offset_y = offset_y * interp_scale;
 						tmp_pix2.hPSF = super_PSF.at<double>(super_offset_x, super_offset_y);
@@ -171,8 +171,8 @@ void HR_to_LR ( Mat& HRimg, Mat& LRimg, double scale, Mat& PSF, bool is_super_PS
 					offset_y = pos_y - PSF_top ;
 
 					// if offset is just on the edge of PSF
-					if (offset_x == PSF_radius_x * 2 + 1) offset_x -= EXsmall;
-					if (offset_y == PSF_radius_y * 2 + 1) offset_y -= EXsmall;
+					if (offset_x == PSF_radius_x * 2 + 1) offset_x -= EX_small;
+					if (offset_y == PSF_radius_y * 2 + 1) offset_y -= EX_small;
 
 					super_offset_x = offset_x * PSF_scale;
 					super_offset_y = offset_y * PSF_scale;
@@ -261,8 +261,8 @@ void HR_to_LR_percetion ( Mat& HRimg, LR_Pixel_Array& LR_pixels, InfluenceRelati
 						offset_y = pos_y - PSF_top ;
 
 						// if offset is just on the edge of PSF
-						if (offset_x == PSF_radius_x * 2 + 1) offset_x -= EXsmall;
-						if (offset_y == PSF_radius_y * 2 + 1) offset_y -= EXsmall;
+						if (offset_x == PSF_radius_x * 2 + 1) offset_x -= EX_small;
+						if (offset_y == PSF_radius_y * 2 + 1) offset_y -= EX_small;
 
 						super_offset_x = offset_x * PSF_scale;
 						super_offset_y = offset_y * PSF_scale;
@@ -456,8 +456,8 @@ void showConfidence (Mat& flow_forward, Mat& flow_backward, Mat& confidence, dou
 		if (confidence.at<double>(i, j) > max_confdence) max_confdence = confidence.at<double>(i, j);
 	}
 
-	confidence = confidence /** 254*/ + EXsmall;
-	//confidence = EXsmall;
+	confidence = confidence /** 254*/ + EX_small;
+	//confidence = EX_small;
 }
 
 double ExpNegSQR (double x, double y, double sigma) {
@@ -726,8 +726,8 @@ void DivideToBlocksToConstruct(vector<Mat>& BigLRimgs, vector<Mat>& BigFlows, ve
 
 			imgx = int(x);
 			imgy = int(y);
-			imgwidth = floor(x+blockWidth+0.5+EXsmall) - imgx;
-			imgheight = floor(y+blockHeight+0.5+EXsmall) - imgy;
+			imgwidth = floor(x+blockWidth+0.5+EX_small) - imgx;
+			imgheight = floor(y+blockHeight+0.5+EX_small) - imgy;
 
 			imgOriginWidth = imgwidth;
 			imgOriginHeight = imgheight;

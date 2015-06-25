@@ -45,7 +45,7 @@ void SymmConfOptFlow_calc::calc(InputArray _I0, InputArray _I1, InputOutputArray
 
 		cout << "getInterpFlowSpecScale" << endl;
 		Mat interp_flow, interp_flow_back, interp_conf, interp_conf_back;
-		if (/*0 < s &&*/ s < (nscales - 1)) {
+		if (0 < s && s < (nscales - 1)) {
 			OptFlow->getInterpFlowSpecScale(s, interp_flow);
 			OptFlow_back->getInterpFlowSpecScale(s, interp_flow_back);
 			showConfidence(interp_flow, interp_flow_back, interp_conf);
@@ -102,12 +102,18 @@ void SymmConfOptFlow_calc::calc(InputArray _I0, InputArray _I1, InputOutputArray
 		// (Harry) before upscale the optical flow, select higher confidence form last layer
 		cout << "combineFlow" << endl;
 
-		//selectHigherConf(flow, interp_flow, conf, interp_conf, flows[s], confs[s]);
-		//selectHigherConf(flow_back, interp_flow_back, conf_back, interp_conf_back, flows_back[s], confs_back[s]);
+		selectHigherConf(flow, interp_flow, conf, interp_conf, flows[s], confs[s]);
+		selectHigherConf(flow_back, interp_flow_back, conf_back, interp_conf_back, flows_back[s], confs_back[s]);
 		
 		Mat curI0 = OptFlow->getI0SpecScale(s), curI0_back = OptFlow_back->getI0SpecScale(s);
-		fillLowConf_WithH(curI0, flow, interp_flow, conf, interp_conf, flows[s], confs[s]);
-		fillLowConf_WithH(curI0_back, flow_back, interp_flow_back, conf_back, interp_conf_back, flows_back[s], confs_back[s]);
+		//fillLowConf_WithH(curI0, flow, interp_flow, conf, interp_conf, flows[s], confs[s]);
+		//fillLowConf_WithH(curI0_back, flow_back, interp_flow_back, conf_back, interp_conf_back, flows_back[s], confs_back[s]);
+		
+		//fillLowConf_WithLaplaceEQ(curI0, flow, interp_flow, conf, interp_conf, flows[s], confs[s]);
+		//fillLowConf_WithLaplaceEQ(curI0_back, flow_back, interp_flow_back, conf_back, interp_conf_back, flows_back[s], confs_back[s]);
+		//showConfidence(flows[s], flows_back[s], confs[s]);
+		//showConfidence(flows_back[s], flows[s], confs_back[s]);
+		
 
 	
 		// see which layer
@@ -132,8 +138,17 @@ void SymmConfOptFlow_calc::calc(InputArray _I0, InputArray _I1, InputOutputArray
 		}
 
 		// if this was the last scale, finish now
-        if (s == 0)
-            break;
+        if (s == 0) {
+			fillLowConf_WithH(curI0, flow, interp_flow, conf, interp_conf, flows[s], confs[s]);
+			fillLowConf_WithH(curI0_back, flow_back, interp_flow_back, conf_back, interp_conf_back, flows_back[s], confs_back[s]);
+			
+			//fillLowConf_WithLaplaceEQ(curI0, flow, interp_flow, conf, interp_conf, flows[s], confs[s]);
+			//fillLowConf_WithLaplaceEQ(curI0_back, flow_back, interp_flow_back, conf_back, interp_conf_back, flows_back[s], confs_back[s]);
+			showConfidence(flows[s], flows_back[s], confs[s]);
+			showConfidence(flows_back[s], flows[s], confs_back[s]);
+            /**/
+			break;
+		}
 
 		cout << "setFlowForNextScale" << endl;
         // otherwise, upsample the optical flow
@@ -159,9 +174,9 @@ void SymmConfOptFlow_calc::selectHigherConf(Mat& flow, Mat& interp_flow, Mat& co
 	combined_conf = Mat::zeros(flow.size(), CV_64F);
 
 	for (int i = 0; i < conf.rows; i++) for (int j = 0; j < conf.cols; j++) {
-		if (conf.at<double>(i, j) < interp_conf.at<double>(i, j)) {		
+		//if (conf.at<double>(i, j) < interp_conf.at<double>(i, j)) {		
 			//if (conf.at<double>(i, j) < 0.1 && interp_conf.at<double>(i, j) > 0) {	
-		//if (false) {
+		if (false) {
 			combined_flow.at<Vec2f>(i, j) = interp_flow.at<Vec2f>(i, j);
 			combined_conf.at<double>(i, j) = interp_conf.at<double>(i, j);
 		}
@@ -173,7 +188,7 @@ void SymmConfOptFlow_calc::selectHigherConf(Mat& flow, Mat& interp_flow, Mat& co
 
 }
 
-void SymmConfOptFlow_calc::fillLowConf_WithH(Mat& curI0, Mat& flow, Mat& interp_flow, Mat& conf, Mat& interp_conf, Mat& combined_flow, Mat& combined_conf)
+void SymmConfOptFlow_calc::propagateFlow_WithH(Mat& curI0, Mat& flow, Mat& interp_flow, Mat& conf, Mat& interp_conf, Mat& combined_flow, Mat& combined_conf)
 {
 	// (Harry) before upscale the optical flow
 	// (1) check well aligned pixel (mismatch within 1 pixel range), both layer
@@ -185,14 +200,15 @@ void SymmConfOptFlow_calc::fillLowConf_WithH(Mat& curI0, Mat& flow, Mat& interp_
 	combined_conf = Mat::zeros(flow.size(), CV_64F);
 
 	// building (1)
-	double highConf = 0.1;
+	double highConf = 0.5;
 
 	vector<Vec3f> highConfPixels;	
 
 	for (int i = 0; i < conf.rows; i++) for (int j = 0; j < conf.cols; j++) {
-		if (conf.at<double>(i, j) > highConf && interp_conf.at<double>(i, j) > highConf)
+		if (conf.at<double>(i, j) > highConf /*&& interp_conf.at<double>(i, j) > highConf*/)
 		{
-			highConfPixels.push_back( Vec3f( i, j, curI0.at<float>(i, j) ) );
+			//highConfPixels.push_back( Vec3f( i, j, curI0.at<float>(i, j) ) );
+			highConfPixels.push_back( Vec3f( i, j, 0) );
 		}
 	}
 
@@ -201,14 +217,15 @@ void SymmConfOptFlow_calc::fillLowConf_WithH(Mat& curI0, Mat& flow, Mat& interp_
 	flann::Index kdtree(highConfPixelsMat, indexParams);
 
 	// query (2)
-	int knnK = 10;
+	int knnK = 30;
 	for (int i = 0; i < conf.rows; i++) for (int j = 0; j < conf.cols; j++) {
-		//if ( conf.at<double>(i, j) < 0.1 && interp_conf.at<double>(i, j) > 0) {
-		if ( conf.at<double>(i, j) < interp_conf.at<double>(i, j) && highConfPixels.size() > knnK) {
+		if ( conf.at<double>(i, j) < 0.1 && interp_conf.at<double>(i, j) > 0) {
+		//if ( conf.at<double>(i, j) < interp_conf.at<double>(i, j) && highConfPixels.size() > knnK) {
 			vector<float> query;
 			query.push_back(i);
 			query.push_back(j);
-			query.push_back(curI0.at<float>(i, j));
+			//query.push_back(curI0.at<float>(i, j));
+			query.push_back(0);
 
 			vector<int> indices(knnK);
 			vector<float> dists(knnK);
@@ -229,7 +246,7 @@ void SymmConfOptFlow_calc::fillLowConf_WithH(Mat& curI0, Mat& flow, Mat& interp_
 				dstPoints.push_back(Point2f(cur_j + newFlow.val[0], cur_i + newFlow.val[1]));
 			}
 
-			Mat H = findHomography(srcPoints, dstPoints);
+			Mat H = findHomography(srcPoints, dstPoints, CV_RANSAC, 1);
 			//cout << H.type();
 			Mat curP = Mat::zeros(3, 3, CV_64F);
 			curP.at<double>(0,0) = j + interp_flow.at<Vec2f>(i ,j).val[0];
@@ -250,6 +267,122 @@ void SymmConfOptFlow_calc::fillLowConf_WithH(Mat& curI0, Mat& flow, Mat& interp_
 
 
 
+}
+
+void SymmConfOptFlow_calc::fillLowConf_WithH(Mat& curI0, Mat& flow, Mat& interp_flow, Mat& conf, Mat& interp_conf, Mat& combined_flow, Mat& combined_conf)
+{
+	combined_flow = Mat::zeros(flow.size(), CV_32FC2);
+	combined_conf = Mat::zeros(flow.size(), CV_64F);
+
+	// building (1)
+	double highConf = 0.5;
+
+	vector<Vec3f> highConfPixels;	
+
+	for (int i = 0; i < conf.rows; i++) for (int j = 0; j < conf.cols; j++) {
+		if (conf.at<double>(i, j) > highConf /*&& interp_conf.at<double>(i, j) > highConf*/)
+		{
+			//highConfPixels.push_back( Vec3f( i, j, curI0.at<float>(i, j) ) );
+			highConfPixels.push_back( Vec3f( i, j, 0) );
+		}
+	}
+
+	Mat highConfPixelsMat = Mat(highConfPixels).reshape(1);
+	flann::KMeansIndexParams indexParams;
+	flann::Index kdtree(highConfPixelsMat, indexParams);
+
+	// query (2)
+	int knnK = 20;
+	for (int i = 0; i < conf.rows; i++) for (int j = 0; j < conf.cols; j++) {
+		if ( conf.at<double>(i, j) < highConf) {
+		//if ( conf.at<double>(i, j) < interp_conf.at<double>(i, j) && highConfPixels.size() > knnK) {
+			vector<float> query;
+			query.push_back(i);
+			query.push_back(j);
+			//query.push_back(curI0.at<float>(i, j));
+			query.push_back(0);
+
+			vector<int> indices(knnK);
+			vector<float> dists(knnK);
+
+			//kdtree.radiusSearch(query, indices, dists, 2, 3);
+			kdtree.knnSearch(query, indices, dists, knnK);
+
+			vector<Point2f> srcPoints, dstPoints;
+
+			for (int k = 0; k < knnK; k++) {
+				int cur_i = highConfPixels[indices[k]].val[0];
+				int cur_j = highConfPixels[indices[k]].val[1];
+
+				Vec2f& Flow = flow.at<Vec2f>(cur_i ,cur_j);
+
+				srcPoints.push_back(Point2f(cur_j, cur_i));
+				dstPoints.push_back(Point2f(cur_j + Flow.val[0], cur_i + Flow.val[1]));
+			}
+
+			Mat H = findHomography(srcPoints, dstPoints, CV_RANSAC, 1);
+			//cout << H.type();
+			Mat curP = Mat::zeros(3, 3, CV_64F);
+			curP.at<double>(0,0) = j;
+			curP.at<double>(1,0) = i;
+			curP.at<double>(2,0) = 1;
+			Mat newP = H.mul(curP);
+
+			combined_conf.at<double>(i, j) = interp_conf.at<double>(i, j);
+			combined_flow.at<Vec2f>(i, j)[0] = newP.at<double>(0,0) - j;
+			combined_flow.at<Vec2f>(i, j)[1] = newP.at<double>(1,0) - i;			
+		}
+		else // conf > 0.1, i.e. within 1 pixel error
+		{
+			combined_conf.at<double>(i, j) = conf.at<double>(i, j);
+			combined_flow.at<Vec2f>(i, j) = flow.at<Vec2f>(i, j);
+		}
+	}
+}
+
+void SymmConfOptFlow_calc::fillLowConf_WithLaplaceEQ(Mat& curI0, Mat& flow, Mat& interp_flow, Mat& conf, Mat& interp_conf, Mat& combined_flow, Mat& combined_conf)
+{
+	combined_flow = Mat::zeros(flow.size(), CV_32FC2);
+	combined_conf = Mat::zeros(flow.size(), CV_64F);
+
+	Mat tmp_flow = Mat::zeros(flow.size(), CV_32FC2);
+
+	double err = EX_big;
+
+	while (err > 0.001) {
+		err = 0;
+		for (int i = 1; i < flow.rows-1; i++) for (int j = 1; j < flow.cols-1; j++)
+		{
+			// 0.5623 = 0.5 pixel miss
+
+			if (conf.at<double>(i, j) < 0.5) {
+
+				tmp_flow.at<Vec2f>(i, j) = 0.25 * ( 
+										flow.at<Vec2f>(i+1, j) +
+										flow.at<Vec2f>(i-1, j) +
+										flow.at<Vec2f>(i, j+1) +
+										flow.at<Vec2f>(i, j-1)										
+										);
+				Vec2f diff = tmp_flow.at<Vec2f>(i, j) - flow.at<Vec2f>(i, j);
+
+				err += (SQR(diff.val[0]) + SQR(diff.val[1]));
+			}
+			else {
+				tmp_flow.at<Vec2f>(i, j) = flow.at<Vec2f>(i, j);
+			}
+		}
+
+		for (int i = 1; i < flow.rows-1; i++) for (int j = 1; j < flow.cols-1; j++)
+		{
+			flow.at<Vec2f>(i, j) = tmp_flow.at<Vec2f>(i, j);
+		}
+	}
+
+	for (int i = 0; i < flow.rows; i++) for (int j = 0; j < flow.cols; j++)
+	{
+		combined_flow.at<Vec2f>(i, j) = flow.at<Vec2f>(i, j);
+		combined_conf.at<double>(i, j) = conf.at<double>(i, j);
+	}
 }
 
 SymmConfOptFlow_calc::~SymmConfOptFlow_calc()

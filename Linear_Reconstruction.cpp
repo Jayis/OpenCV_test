@@ -248,7 +248,7 @@ void LinearConstructor::solve_byCG() {
 	//AT.makeCompressed();
 	
 	cout << "multiplying ATA..." << endl;
-	ATA = (AT * A).pruned(100, EXsmall);
+	ATA = (AT * A).pruned(100, EX_small);
 	//ATA.makeCompressed();
 	cout << "multiplying ATb...\n";
 	ATb = AT * b;

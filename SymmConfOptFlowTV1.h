@@ -19,7 +19,9 @@ public:
 
 private:
 	void selectHigherConf(Mat& flow, Mat& interp_flow, Mat& conf, Mat& interp_conf, Mat& combined_flow, Mat& combined_conf);
+	void propagateFlow_WithH(Mat& curI0, Mat& flow, Mat& interp_flow, Mat& conf, Mat& interp_conf, Mat& combined_flow, Mat& combined_conf);
 	void fillLowConf_WithH(Mat& curI0, Mat& flow, Mat& interp_flow, Mat& conf, Mat& interp_conf, Mat& combined_flow, Mat& combined_conf);
+	void fillLowConf_WithLaplaceEQ(Mat& curI0, Mat& flow, Mat& interp_flow, Mat& conf, Mat& interp_conf, Mat& combined_flow, Mat& combined_conf);
 
 	Mod_OpticalFlowDual_TVL1 *OptFlow, *OptFlow_back;
 
