@@ -15,13 +15,15 @@ public:
 	SymmConfOptFlow_calc();
 	~SymmConfOptFlow_calc();
 
-	void calc(InputArray I0, InputArray I1, InputOutputArray flow, InputOutputArray flow_back, InputOutputArray conf);
+	void calc_tv1(InputArray I0, InputArray I1, InputOutputArray flow, InputOutputArray flow_back, InputOutputArray conf);
+	void calc_HS(InputArray I0, InputArray I1, InputOutputArray flow, InputOutputArray flow_back, InputOutputArray conf);
 
 private:
-	void selectHigherConf(Mat& flow, Mat& interp_flow, Mat& conf, Mat& interp_conf, Mat& combined_flow, Mat& combined_conf);
-	void propagateFlow_WithH(Mat& curI0, Mat& flow, Mat& interp_flow, Mat& conf, Mat& interp_conf, Mat& combined_flow, Mat& combined_conf);
-	void fillLowConf_WithH(Mat& curI0, Mat& flow, Mat& interp_flow, Mat& conf, Mat& interp_conf, Mat& combined_flow, Mat& combined_conf);
-	void fillLowConf_WithLaplaceEQ(Mat& curI0, Mat& flow, Mat& interp_flow, Mat& conf, Mat& interp_conf, Mat& combined_flow, Mat& combined_conf);
+	void selectHigherConf(Mod_OpticalFlowDual_TVL1* curOptFlow, Mat& flow, Mat& interp_flow, Mat& conf, Mat& interp_conf, Mat& combined_flow, Mat& combined_conf);
+	void propagateFlow_WithH(Mod_OpticalFlowDual_TVL1* curOptFlow, Mat& flow, Mat& interp_flow, Mat& conf, Mat& interp_conf, Mat& combined_flow, Mat& combined_conf);
+	void fillLowConf_WithH(Mod_OpticalFlowDual_TVL1* curOptFlow, Mat& flow, Mat& interp_flow, Mat& conf, Mat& interp_conf, Mat& combined_flow, Mat& combined_conf);
+	void fillLowConf_WithLaplaceEQ(Mod_OpticalFlowDual_TVL1* curOptFlow, Mat& flow, Mat& interp_flow, Mat& conf, Mat& interp_conf, Mat& combined_flow, Mat& combined_conf);
+	void patchI0_whileLowConf(Mod_OpticalFlowDual_TVL1* curOptFlow, Mat& flow, Mat& interp_flow, Mat& conf, Mat& interp_conf, Mat& combined_flow, Mat& combined_conf);
 
 	Mod_OpticalFlowDual_TVL1 *OptFlow, *OptFlow_back;
 

@@ -18,6 +18,8 @@
 using namespace std;
 using namespace cv;
 
+void multiOptFlow_exp(String test_set = "");
+
 void symmetricOptFlow_test();
 
 void exampleBased_test ();

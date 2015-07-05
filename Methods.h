@@ -73,7 +73,7 @@ void outputHRcolor (Mat& HRimgC1, Mat& LRimg, Mat& HRimgC3);
 
 void specialBlur (Mat& input, Mat& output);
 // 
-void optFlowHS (Mat& prev, Mat& curr, Mat& flow);
+void optFlowHS (Mat& prev, Mat& curr, Mat& flow, int useInit = 0);
 
 //
 void calcVecMatDiff (Mat& a, Mat& b, Mat& output);

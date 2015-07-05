@@ -891,34 +891,32 @@ void specialBlur (Mat& input, Mat& output) {
 
 }
 
-void optFlowHS (Mat& from, Mat& to, Mat& flow)
+void optFlowHS (Mat& from, Mat& to, Mat& flow, int useInit)
 {
+	CvMat prev = from, curr = to;
 
-	uchar *tmpF = (uchar*)malloc(from.rows * from.cols), *tmpT = (uchar*)malloc(from.rows * from.cols); 
-	CvMat prev = cvMat( from.rows, from.cols, CV_8U,  tmpF),
-		curr = cvMat( to.rows, to.cols, CV_8U,  tmpT);
-	cout << "gg";
 	
-	float *tmpx = (float*)malloc(from.rows * from.cols), *tmpy = (float*)malloc(from.rows * from.cols);
-	CvMat velx = cvMat( from.rows, from.cols, CV_32F,  tmpx),
-		vely = cvMat( to.rows, to.cols, CV_32F, tmpy);
+	float *tmpx = (float*)malloc(from.rows * from.cols * sizeof(float)), *tmpy = (float*)malloc(from.rows * from.cols * sizeof(float));
+	CvMat velx = cvMat( from.rows, from.cols, CV_32FC1,  tmpx),
+		vely = cvMat( to.rows, to.cols, CV_32FC1, tmpy);
 	CvTermCriteria criteria;
-	criteria.type = CV_TERMCRIT_ITER;
+	criteria.type = CV_TERMCRIT_EPS;
 	criteria.max_iter = 200;
-	criteria.epsilon = 0.1;
-	cout << "hh";
-	cvCalcOpticalFlowHS(&prev, &curr, 0, &velx, &vely, 1, criteria);
+	criteria.epsilon = 0.0001;
+	cvCalcOpticalFlowHS(&prev, &curr, useInit, &velx, &vely, 0.1, criteria);
 
 	flow = Mat::zeros(from.size(), CV_32FC2);
-	cout << "jj";
 	for (int i = 0; i < flow.rows; i++) for (int j = 0; j < flow.cols; j++)
 	{
 		Vec2f& tmp = flow.at<Vec2f>(i, j);
 
-		tmp[0] = CV_MAT_ELEM(velx, float, i, j);
-		tmp[1] = CV_MAT_ELEM(vely, float, i, j);
+		tmp.val[0] = CV_MAT_ELEM(velx, float, i, j);
+		tmp.val[1] = CV_MAT_ELEM(vely, float, i, j);
 
 	}
+
+	free(tmpx);
+	free(tmpy);
 
 }
 
