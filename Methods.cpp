@@ -445,6 +445,7 @@ void showConfidence (Mat& flow_forward, Mat& flow_backward, Mat& confidence, dou
 			(1-portion_i) * (1-portion_j) * i1j1; 
 
 		confidence.at<double>(i, j) = calcConfidence(cur_flow, interpFlow, sigma);
+
 		/*
 		confidence.at<double>(i, j) = 
 			portion_i * portion_j * calcConfidence(cur_flow, ij, sigma) + 
@@ -457,6 +458,7 @@ void showConfidence (Mat& flow_forward, Mat& flow_backward, Mat& confidence, dou
 	}
 
 	confidence = confidence /** 254*/ + EX_small;
+	//confidence = 1;
 	//confidence = EX_small;
 }
 
@@ -831,13 +833,13 @@ void warpImageByFlow (Mat& colorImg, Mat& flow, Mat& output) {
 
 	Mat map_x(flow.size(), CV_32FC1);
 	Mat map_y(flow.size(), CV_32FC1);
-	for (int y = 0; y < map_x.rows; y++)
+	for (int i = 0; i < map_x.rows; i++)
 	{
-		for (int x = 0; x < map_x.cols; x++)
+		for (int j = 0; j < map_x.cols; j++)
 		{
-			Point2f f = flow.at<Point2f>(y, x);
-			map_x.at<float>(y, x) = x + f.x;
-			map_y.at<float>(y, x) = y + f.y;
+			Vec2f f = flow.at<Vec2f>(i, j);
+			map_x.at<float>(i, j) = j + f.val[0];
+			map_y.at<float>(i, j) = i + f.val[1];
 		}
 	}
 
@@ -895,17 +897,25 @@ void optFlowHS (Mat& from, Mat& to, Mat& flow, int useInit)
 {
 	CvMat prev = from, curr = to;
 
-	
+	if (useInit == 0) {
+		flow = Mat::zeros(from.size(), CV_32FC2);
+	}
+
+	Mat_<float> vel[2];
+	split(flow, vel);
+
+	CvMat velx = vel[0], vely = vel[1];
+	/*
 	float *tmpx = (float*)malloc(from.rows * from.cols * sizeof(float)), *tmpy = (float*)malloc(from.rows * from.cols * sizeof(float));
 	CvMat velx = cvMat( from.rows, from.cols, CV_32FC1,  tmpx),
-		vely = cvMat( to.rows, to.cols, CV_32FC1, tmpy);
+		vely = cvMat( to.rows, to.cols, CV_32FC1, tmpy);//*/
+	
 	CvTermCriteria criteria;
-	criteria.type = CV_TERMCRIT_EPS;
-	criteria.max_iter = 200;
+	criteria.type = CV_TERMCRIT_ITER;
+	criteria.max_iter = 500;
 	criteria.epsilon = 0.0001;
-	cvCalcOpticalFlowHS(&prev, &curr, useInit, &velx, &vely, 0.1, criteria);
+	cvCalcOpticalFlowHS(&prev, &curr, useInit, &velx, &vely, 0.0001, criteria);
 
-	flow = Mat::zeros(from.size(), CV_32FC2);
 	for (int i = 0; i < flow.rows; i++) for (int j = 0; j < flow.cols; j++)
 	{
 		Vec2f& tmp = flow.at<Vec2f>(i, j);
@@ -914,10 +924,10 @@ void optFlowHS (Mat& from, Mat& to, Mat& flow, int useInit)
 		tmp.val[1] = CV_MAT_ELEM(vely, float, i, j);
 
 	}
-
+	/*
 	free(tmpx);
 	free(tmpy);
-
+	//*/
 }
 
 void calcVecMatDiff (Mat& a, Mat& b, Mat& output)

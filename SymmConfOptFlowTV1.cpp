@@ -9,6 +9,89 @@ SymmConfOptFlow_calc::SymmConfOptFlow_calc()
 
 }
 
+void SymmConfOptFlow_calc::calc_tv1(InputArray _I0, InputArray _I1, InputOutputArray _flow, InputOutputArray _flow_back, InputOutputArray _conf)
+{
+	Mat I0, I1;
+
+	I0 = _I0.getMat();
+	I1 = _I1.getMat();
+
+	flows.resize(1);
+	flows_back.resize(1);
+	confs.resize(1);
+
+	OptFlow->calc(I0, I1, flows[0]);
+	OptFlow_back->calc(I1, I0, flows_back[0]);
+
+	showConfidence(flows[0], flows_back[0], confs[0]);
+
+	flows[0].copyTo(_flow);
+	flows_back[0].copyTo(_flow_back);
+	confs[0].copyTo(_conf);
+
+}
+
+void SymmConfOptFlow_calc::calc_FB(InputArray _I0, InputArray _I1, InputOutputArray _flow, InputOutputArray _flow_back, InputOutputArray _conf)
+{
+	Mat I0, I1;
+
+	I0 = _I0.getMat();
+	I1 = _I1.getMat();
+
+	flows.resize(1);
+	flows_back.resize(1);
+	confs.resize(1);
+
+	calcOpticalFlowFarneback(I0, I1, flows[0],
+		//0.5, 5, 1, 100, 7, 1.5, OPTFLOW_FARNEBACK_GAUSSIAN);
+		0.5, 5, 15, 3, 5, 1.2, 0);
+	calcOpticalFlowFarneback(I1, I0, flows_back[0],
+		//0.5, 5, 1, 100, 7, 1.5, OPTFLOW_FARNEBACK_GAUSSIAN);
+		0.5, 5, 15, 3, 5, 1.2, 0);
+
+	showConfidence(flows[0], flows_back[0], confs[0]);
+
+	flows[0].copyTo(_flow);
+	flows_back[0].copyTo(_flow_back);
+	confs[0].copyTo(_conf);
+
+}
+
+void SymmConfOptFlow_calc::calc_SF(InputArray _I0, InputArray _I1, InputOutputArray _flow, InputOutputArray _flow_back, InputOutputArray _conf)
+{
+	Mat I0, I1;
+
+	if (_I0.channels() == 1) {
+		Mat I0_tmp[3], I1_tmp[3];
+		for(int i = 0; i < 3; i++) {
+			I0_tmp[i] = _I0.getMat();
+			I1_tmp[i] = _I1.getMat();
+		}
+		
+		merge(I0_tmp, 3, I0);
+		merge(I1_tmp, 3, I1);
+	}
+	else {
+		I0 = _I0.getMat();
+		I1 = _I1.getMat();
+	}
+
+	flows.resize(1);
+	flows_back.resize(1);
+	confs.resize(1);
+
+	calcOpticalFlowSF(I0, I1, flows[0],
+		5, 2, 4, 4.1, 25.5, 18, 55.0, 25.5, 0.35, 18, 55.0, 25.5, 1/*10*/);
+	calcOpticalFlowSF(I1, I0, flows_back[0],
+		5, 2, 4, 4.1, 25.5, 18, 55.0, 25.5, 0.35, 18, 55.0, 25.5, 1/*10*/);
+
+	showConfidence(flows[0], flows_back[0], confs[0]);
+
+	flows[0].copyTo(_flow);
+	flows_back[0].copyTo(_flow_back);
+	confs[0].copyTo(_conf);
+}
+
 void SymmConfOptFlow_calc::calc_HS(InputArray _I0, InputArray _I1, InputOutputArray _flow, InputOutputArray _flow_back, InputOutputArray _conf)
 {
 	OptFlow->calc_part1(_I0, _I1, _flow);
@@ -29,11 +112,15 @@ void SymmConfOptFlow_calc::calc_HS(InputArray _I0, InputArray _I1, InputOutputAr
 		tmp_curI0.convertTo(curI0, CV_8UC1);
 		tmp_curI1.convertTo(curI1, CV_8UC1);
 
+		//imwrite("output/pyra" + int2str(s) + ".bmp", curI0);
+
 		if (s != nscales - 1) {
 			resize(flows[s+1], flows[s], curI0.size(), 0, 0, CV_INTER_CUBIC);
+			multiply(flows[s], Scalar::all(2.0), flows[s]);
 			optFlowHS(curI0, curI1, flows[s], 1);
 
 			resize(flows_back[s+1], flows_back[s], curI1.size(), 0, 0, CV_INTER_CUBIC);
+			multiply(flows_back[s], Scalar::all(2.0), flows_back[s]);
 			optFlowHS(curI1, curI0, flows_back[s], 1);
 		}
 		else {
@@ -50,7 +137,7 @@ void SymmConfOptFlow_calc::calc_HS(InputArray _I0, InputArray _I1, InputOutputAr
 	confs[0].copyTo(_conf);
 }
 
-void SymmConfOptFlow_calc::calc_tv1(InputArray _I0, InputArray _I1, InputOutputArray _flow, InputOutputArray _flow_back, InputOutputArray _conf)
+void SymmConfOptFlow_calc::calc_tv1_exp(InputArray _I0, InputArray _I1, InputOutputArray _flow, InputOutputArray _flow_back, InputOutputArray _conf)
 {
 	OptFlow->calc_part1(_I0, _I1, _flow);
 	OptFlow_back->calc_part1(_I1, _I0, _flow_back);

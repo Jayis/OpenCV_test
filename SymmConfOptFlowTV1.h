@@ -15,8 +15,11 @@ public:
 	SymmConfOptFlow_calc();
 	~SymmConfOptFlow_calc();
 
+	void calc_tv1_exp(InputArray I0, InputArray I1, InputOutputArray flow, InputOutputArray flow_back, InputOutputArray conf);
 	void calc_tv1(InputArray I0, InputArray I1, InputOutputArray flow, InputOutputArray flow_back, InputOutputArray conf);
 	void calc_HS(InputArray I0, InputArray I1, InputOutputArray flow, InputOutputArray flow_back, InputOutputArray conf);
+	void calc_SF(InputArray I0, InputArray I1, InputOutputArray flow, InputOutputArray flow_back, InputOutputArray conf);
+	void calc_FB(InputArray I0, InputArray I1, InputOutputArray flow, InputOutputArray flow_back, InputOutputArray conf);
 
 private:
 	void selectHigherConf(Mod_OpticalFlowDual_TVL1* curOptFlow, Mat& flow, Mat& interp_flow, Mat& conf, Mat& interp_conf, Mat& combined_flow, Mat& combined_conf);
