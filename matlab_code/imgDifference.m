@@ -1,4 +1,4 @@
-function [ colorDiff, diff ] = imgDifference( img1, img2 )
+function [ colorDiff, err ] = imgDifference( img1, img2 )
 
 diff_tmp = img1 - img2;
 diff_tmp = diff_tmp.^2;
@@ -10,13 +10,13 @@ for i = 1: size(diff_tmp, 1)
     end
 end
 
-diff = floor(diff / max(diff(:)) * 255);
+diff = sqrt(diff);
+err = sum(diff(:)) / (size(diff_tmp, 1) * size(diff_tmp, 2));
+diff = floor(diff);
 
-%colormap jet
-%cmap = colormap;
 colorDiff = ind2rgb(diff, jet);
 
-%imshow(visualDiff)
+imshow(colorDiff)
 
 end
 

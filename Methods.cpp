@@ -710,9 +710,8 @@ void DivideToBlocksToConstruct(vector<Mat>& BigLRimgs, vector<Mat>& BigFlows, ve
 	int LR_imgCount = BigLRimgs.size();
 	BigHRimg = Mat::zeros(BigHR_rows, BigHR_cols, CV_64F);
 
-	int longSide = (BigLR_rows > BigLR_cols) ? BigLR_rows : BigLR_cols;
-	int totalBlocksCount = 0;
-	totalBlocksCount = pow(4, floor(log(longSide/100.f)/log(2.0f))); // origin: ceil
+	int longSide = (BigHR_rows > BigHR_cols) ? BigHR_rows : BigHR_cols;
+	int totalBlocksCount = pow(4, floor(log(longSide/200.f)/log(2.0f))); // origin: ceil
 
 	double blockPerAxis = sqrt(totalBlocksCount);
 	cout << endl << "Total Blocks: " << blockPerAxis << endl;
@@ -775,9 +774,11 @@ void DivideToBlocksToConstruct(vector<Mat>& BigLRimgs, vector<Mat>& BigFlows, ve
 			// ----- CONSTRUCTION -----
 
 			int rowst = imgy+overlappingy, rowlength = imgheight-overlappingh-overlappingy, colst = imgx+overlappingx, collength = imgwidth-overlappingw-overlappingx;
-			Rect rectInHR = Rect( colst*2, rowst*2, collength*2, rowlength*2 );
+			//Rect rectInHR = Rect( colst*2, rowst*2, collength*2, rowlength*2 );
+			Rect rectInHR = Rect( colst*scale, rowst*scale, collength*scale, rowlength*scale );
 			cout << "rectInHR: " << rectInHR << endl;
-			Rect rectInHRBlock = Rect( (colst-imgx)*2, (rowst-imgy)*2, collength*2, rowlength*2 );
+			//Rect rectInHRBlock = Rect( (colst-imgx)*2, (rowst-imgy)*2, collength*2, rowlength*2 );
+			Rect rectInHRBlock = Rect( (colst-imgx)*scale, (rowst-imgy)*scale, collength*scale, rowlength*scale );
 			cout << "rectInHRBlock: " << rectInHRBlock << endl;
 			//cout << rect << endl << rectInHR << endl << rectInHRBlock << endl << HRSingleImg.size()  << endl << HRSingleImgFinal.size() << endl;
 			//HRSingleImg(rectInHRBlock).copyTo(HRSingleImgFinal(rectInHR));

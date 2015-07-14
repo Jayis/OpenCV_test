@@ -466,7 +466,7 @@ void flow2H_test () {
 }
 
 void LinearConstruct_test () {
-	String test_set = "res2Crop2000";	
+	String test_set = "bb1Crop2000";	
 	int n = 4;
 
 	vector<Mat> imgsC1;
@@ -519,7 +519,7 @@ void LinearConstruct_test () {
 	symm_flows_back.resize(n);
 	symm_confs.resize(n);
 
-	int sigma = 0;
+	int sigma = 2;
 	cout << "read in images\n";
 	Mat tmp[2];
 	for (int k = 0; k < n; k++) {
@@ -579,24 +579,25 @@ void LinearConstruct_test () {
 		/**/
 		
 		SymmConfOptFlow_calc symmOptFlow;
-		symmOptFlow.calc_FB(imgsC1[k], imgsC1[0], symm_flows[k], symm_flows_back[k], symm_confs[k]);
+		symmOptFlow.calc_tv1(imgsC1[k], imgsC1[0], symm_flows[k], symm_flows_back[k], symm_confs[k]);
 		/**/
-		//symm_confs[k] = 1;
 
+		/*
 		Mat check_flow;
 		Mat zero = Mat::zeros(symm_flows[k].size(), CV_32FC2);
 		calcVecMatDiff (symm_flows[k], zero, check_flow);
 		imwrite("output/ggggg.bmp", check_flow*255);
+		//*/
 
 		time(&time1);
 		cout << "flow" << int2str(k) << ": " << difftime(time1, time0) << endl;
 		time0 = time1;
 
 		//imwrite("output/SFconf_" + test_set + int2str(k) + "to0.bmp", confs[k]*254);
-		//imwrite("output/conf_" + test_set + int2str(k) + "to0.bmp", confs[k]*254);
+		imwrite("output/conf_" + test_set + int2str(k) + "to0.bmp", confs[k]*254);
 		//imwrite("output/newConf_" + test_set + int2str(k) + "to0.bmp", newConfs[k]*254);
-		//imwrite("output/blurConfGaussian" + int2str(sigma) + "_" +  test_set + int2str(k) + "to0.bmp", blur_confs[k]*254);
-		imwrite("output/Conf_" + test_set + int2str(k) + "to0.bmp", symm_confs[k]*255);
+		imwrite("output/blurConfGaussian" + int2str(sigma) + "_" +  test_set + int2str(k) + "to0.bmp", blur_confs[k]*254);
+		//imwrite("output/Conf_" + test_set + int2str(k) + "to0.bmp", symm_confs[k]*255);
 		
 		Mat warpImg;
 		/*
@@ -605,8 +606,8 @@ void LinearConstruct_test () {
 		/**/
 		
 		//warpImageByFlow(imgsC3[k], symm_flows_back[k], warpImg);
-		warpImageByFlow(imgsC3[0], symm_flows[k], warpImg);
-		imwrite("output/warpto" + int2str(k) + "_" + test_set + ".bmp", warpImg);
+		//warpImageByFlow(imgsC3[0], symm_flows[k], warpImg);
+		//imwrite("output/warpto" + int2str(k) + "_" + test_set + ".bmp", warpImg);
 		/**/
 	}
 	//getBetterFlow(confs, flows, newConfs, newFlows, combineConfs2, combineFlows2);
@@ -668,11 +669,13 @@ void LinearConstruct_test () {
 	// release 
 	delete OptFlow;
 
+	double scale = 2;
 	Mat dot = Mat::zeros(5,5,CV_64F);
 	dot.at<double>(2, 2) = 1; 
 
+	double PSF_sigma = 0.7 * SQR(scale/2);
 	Mat PSF = Mat::zeros(5,5,CV_64F);
-	GaussianBlur(dot, PSF, Size( 5, 5), 0.7, 0.7, BORDER_REPLICATE);
+	GaussianBlur(dot, PSF, Size( 5, 5), PSF_sigma, PSF_sigma, BORDER_REPLICATE);
 
 	Mat BPk = PSF;
 	
@@ -714,7 +717,8 @@ void LinearConstruct_test () {
 
 	BackProjection_Confidence(HRimg, 2, bpimg, bpflows, PSF, BPk, BPstop, confs);
 	*/
-	DivideToBlocksToConstruct( imgsC1, combineFlows, symm_confs, PSF, 2, HRimg);
+	//DivideToBlocksToConstruct( imgsC1, combineFlows, symm_confs, PSF, scale, HRimg);
+	DivideToBlocksToConstruct( imgsC1, flows, confs, PSF, scale, HRimg);
 	/*
 	LinearConstructor linearConstructor( imgsC1, combineFlows, combineConfs, 2, PSF);
 	linearConstructor.addRegularization_grad2norm(0.05);
@@ -729,8 +733,9 @@ void LinearConstruct_test () {
 	for (int k = 0; k < n; k++) {
 		symm_confs[k] = 1;
 	}
-
-	DivideToBlocksToConstruct( imgsC1, combineFlows, symm_confs, PSF, 2, HRimg);
+	//*/
+	//DivideToBlocksToConstruct( imgsC1, combineFlows, symm_confs, PSF, 2, HRimg);
+	DivideToBlocksToConstruct( imgsC1, blur_flows, blur_confs, PSF, 2, HRimg);
 	imwrite("output/" + test_set + "_LinearConstructC1_noConf.bmp", HRimg);
 	outputHRcolor(HRimg, imgsC3[0], HRimgC3);
 	imwrite("output/" + test_set + "_LinearConstructC3_noConf.bmp", HRimgC3);
