@@ -14,6 +14,7 @@
 #include "ExampleBased_Reconstruction.h"
 #include "Mod_tv1flow.h"
 #include "SymmConfOptFlowTV1.h"
+#include "GA_Reconstruction.h"
 
 using namespace std;
 using namespace cv;
@@ -35,3 +36,5 @@ void FlexISP_test ();
 void OptFlow_BP_test ();
 
 void OptFlow_ConfBP_test ();
+
+void GA_test();

@@ -28,7 +28,8 @@ void HR_to_LR ( Mat& HRimg, Mat& LRimg, double scale, Mat& PSF, bool super_PSF, 
 
 void preInterpolation ( Mat& PSF, Mat& super_PSF, double PSF_scale );
 
-void HR_to_LR_percetion ( Mat& HRimg, LR_Pixel_Array& LR_pixels, InfluenceRelation& relations, Mat& PSF, bool is_super_PSF, double PSF_scale=0 );
+void HR_to_LR_percetion ( HR_Pixel_Array& HR_pixels, LR_Pixel_Array& LR_pixels, InfluenceRelation& relations/*, Mat& PSF, bool is_super_PSF, double PSF_scale=0*/ );
+void HRmat_to_LR_percetion ( Mat& HRimg, LR_Pixel_Array& LR_pixels, InfluenceRelation& relations/*, Mat& PSF, bool is_super_PSF, double PSF_scale*/ );
 // OptFlow
 void NaiveForwardNNWarp (Mat& source, Mat& flow, Mat& output, int ch);
 

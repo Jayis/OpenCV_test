@@ -1,7 +1,7 @@
 #include "Experiments.h"
 
-void multiOptFlow_exp(String test_set) {
-	test_set = "bear256";
+void GA_test() {
+	string test_set = "res256";
 	int n = 4;
 
 	vector<Mat> imgsC1;
@@ -21,89 +21,45 @@ void multiOptFlow_exp(String test_set) {
 	for (int k = 0; k < n; k++) {
 		imgsC1[k] = imread("input/" + test_set + "_0" + int2str(k+1) + ".bmp", CV_LOAD_IMAGE_GRAYSCALE);
 		imgsC3[k] = imread("input/" + test_set + "_0" + int2str(k+1) + ".bmp", CV_LOAD_IMAGE_COLOR);
+
+		Rect smaller(0, 0, 20, 20);
+		imgsC1[k] = imgsC1[k](smaller);
+		imgsC3[k] = imgsC3[k](smaller);
 	}
 
 	cout << "calculating flows & confidences\n";
-
 	Mod_OpticalFlowDual_TVL1* OptFlow = new Mod_OpticalFlowDual_TVL1;
-	time_t time1, time0;
 
 	for (int k = 0; k < n; k++) {
-
-		time(&time0);
-
-		optFlowHS(imgsC1[k], imgsC1[0], flows[k]);
-		optFlowHS(imgsC1[0], imgsC1[k], flows_back[k]);
-		//calcOpticalFlowFarneback(imgsC1[k], imgsC1[0], flows[k], 0.5, 5, 1, 100, 7, 1.5, OPTFLOW_FARNEBACK_GAUSSIAN);
-		//calcOpticalFlowFarneback(imgsC1[0], imgsC1[k], flows_back[k], 0.5, 5, 1, 100, 7, 1.5, OPTFLOW_FARNEBACK_GAUSSIAN);
-		/*
-		calcOpticalFlowSF(imgsC3[k], imgsC3[0], flows[k],// 7, 1, 3);
-			3, 2, 4, 4.1, 25.5, 18, 55.0, 25.5, 0.35, 18, 55.0, 25.5, 10);
-		calcOpticalFlowSF(imgsC3[0], imgsC3[k], flows_back[k], //7, 1, 3);
-			3, 2, 4, 4.1, 25.5, 18, 55.0, 25.5, 0.35, 18, 55.0, 25.5, 10);
-		/**/		
-		/*
 		OptFlow->calc(imgsC1[k], imgsC1[0], flows[k]);
 		OptFlow->calc(imgsC1[0], imgsC1[k], flows_back[k]);
-		/**/
-		showConfidence (flows[k], flows_back[k], confs[k]);
-		
-
-		time(&time1);
-		cout << "flow " << int2str(k) << " : " << difftime(time1, time0) << endl;
-		time0 = time1;
-
-		//imwrite("output/SFconf_" + test_set + int2str(k) + "to0.bmp", confs[k]*254);
-		imwrite("output/conf_" + test_set + int2str(k) + "to0.bmp", confs[k]*254);
-		//imwrite("output/newConf_" + test_set + int2str(k) + "to0.bmp", newConfs[k]*254);
-		//imwrite("output/blurConfGaussian" + int2str(sigma) + "_" +  test_set + int2str(k) + "to0.bmp", blur_confs[k]*254);
-		//imwrite("output/newSymmConf_" + test_set + int2str(k) + "to0.bmp", symm_confs[k]*255);
-		
-		Mat warpImg;
-		
-		warpImageByFlow(imgsC3[k], flows_back[k], warpImg);
-		imwrite("output/warpByFlow_" + test_set + int2str(k) + ".bmp", warpImg);
-		/**/
+		showConfidence (flows[k], flows[k], confs[k]);
 	}
 
 	delete OptFlow;
 
+	double scale = 2;
 	Mat dot = Mat::zeros(5,5,CV_64F);
 	dot.at<double>(2, 2) = 1; 
 
+	double PSF_sigma = 0.7 * SQR(scale/2);
 	Mat PSF = Mat::zeros(5,5,CV_64F);
-	GaussianBlur(dot, PSF, Size( 5, 5), 0.7, 0.7, BORDER_REPLICATE);
+	GaussianBlur(dot, PSF, Size( 5, 5), PSF_sigma, PSF_sigma, BORDER_REPLICATE);
 
 	Mat BPk = PSF;
 
 	Mat HRimg, HRimgC3;
-	/*
-	TermCriteria BPstop;
-	BPstop.type = TermCriteria::COUNT + TermCriteria::EPS;
-	BPstop.maxCount = 10;
-	BPstop.epsilon = 1;
 
-	vector<Mat> bpimg, bpflows;
-	bpimg.push_back(imgsC1[3]);
-	bpflows.push_back(combineFlows[3]);
-
-	BackProjection_Confidence(HRimg, 2, bpimg, bpflows, PSF, BPk, BPstop, confs);
-	*/
-	DivideToBlocksToConstruct( imgsC1, flows, confs, PSF, 2, HRimg);
-	/*
-	LinearConstructor linearConstructor( imgsC1, combineFlows, combineConfs, 2, PSF);
-	linearConstructor.addRegularization_grad2norm(0.05);
-	linearConstructor.solve_byCG();
-	linearConstructor.output(HRimg);
-	/**/
 	
-	imwrite("output/" + test_set + "_LinearConstruct_HRC1_" + int2str(n) + "_Gaussian" + int2str(sigma) + ".bmp", HRimg);
+	GA_Constructor ga_constructor(imgsC1, flows, confs, scale, PSF);
+	ga_constructor.solve();
+	ga_constructor.output(HRimg);
+	//*/
+
+	imwrite("output/" + test_set + "_GA_Construct_HRC1_" + int2str(n) + ".bmp", HRimg);
 	outputHRcolor(HRimg, imgsC3[0], HRimgC3);
-	imwrite("output/" + test_set + "_LinearConstruct_HRC3_" + int2str(n) + "_Gaussian" + int2str(sigma) + ".bmp", HRimgC3);
+	imwrite("output/" + test_set + "_GA_Construct_HRC3_" + int2str(n) + ".bmp", HRimgC3);
 	/**/
-	/*writeImgDiff(imread("output/" + test_set + "_LinearConstruct_HR" + int2str(n) + "_CG.bmp", CV_LOAD_IMAGE_GRAYSCALE),
-		imread("Origin/" + test_set + "Ori_01.bmp", CV_LOAD_IMAGE_GRAYSCALE),
-		"output/" + test_set + "_OriginLinearConstruct" + int2str(n) + "_Diff.bmp");*/
 }
 
 void symmetricOptFlow_test() {

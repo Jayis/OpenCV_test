@@ -6,7 +6,9 @@ using namespace std;
 using namespace cv;
 
 int main() {
-	LinearConstruct_test();
+	GA_test();
+	
+	//LinearConstruct_test();
 	//symmetricOptFlow_test();
 
 	system("pause");

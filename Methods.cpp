@@ -177,7 +177,7 @@ void HR_to_LR ( Mat& HRimg, Mat& LRimg, double scale, Mat& PSF, bool is_super_PS
 					super_offset_x = offset_x * PSF_scale;
 					super_offset_y = offset_y * PSF_scale;
 
-					LRimg.at<double>	(i,j) +=super_PSF.at<double>( super_offset_y, super_offset_x ) * (HRimg.at<double>(cur_pix_i, cur_pix_j)  );
+					LRimg.at<double>(i,j) +=super_PSF.at<double>( super_offset_y, super_offset_x ) * (HRimg.at<double>(cur_pix_i, cur_pix_j)  );
 
 				}
 			}
@@ -186,13 +186,14 @@ void HR_to_LR ( Mat& HRimg, Mat& LRimg, double scale, Mat& PSF, bool is_super_PS
 	}
 }
 
-void HR_to_LR_percetion ( Mat& HRimg, LR_Pixel_Array& LR_pixels, InfluenceRelation& relations, Mat& PSF, bool is_super_PSF, double PSF_scale )
+void HR_to_LR_percetion ( HR_Pixel_Array& HR_pixels, LR_Pixel_Array& LR_pixels, InfluenceRelation& relations/*, Mat& PSF, bool is_super_PSF, double PSF_scale*/ )
 {
 
 	int PSF_radius_x, PSF_radius_y;
 
 	Mat super_PSF;
 
+	/*
 	// directly use imresize to have a approximate pre-interpolation of PSF
 	if (is_super_PSF) {
 		super_PSF = PSF;
@@ -204,6 +205,7 @@ void HR_to_LR_percetion ( Mat& HRimg, LR_Pixel_Array& LR_pixels, InfluenceRelati
 
 	PSF_radius_x = super_PSF.cols / PSF_scale / 2;
 	PSF_radius_y = super_PSF.rows / PSF_scale / 2;
+	*/
 
 	double pos_x, pos_y;
 	int cur_pix_i, cur_pix_j;
@@ -232,7 +234,8 @@ void HR_to_LR_percetion ( Mat& HRimg, LR_Pixel_Array& LR_pixels, InfluenceRelati
 					Perception_Pixel& cur_perception_pix = relations.perception_links[cur_LR_Pixel.perception_link_start + t];
 					cur_LR_Pixel.perception +=
 						cur_perception_pix.hPSF *
-						HRimg.at<double>(cur_perception_pix.pixel->i, cur_perception_pix.pixel->j);
+						//HRimg.at<double>(cur_perception_pix.pixel->i, cur_perception_pix.pixel->j);
+						HR_pixels.access(cur_perception_pix.pixel->i, cur_perception_pix.pixel->j).val;
 				}
 
 				/*
@@ -273,6 +276,26 @@ void HR_to_LR_percetion ( Mat& HRimg, LR_Pixel_Array& LR_pixels, InfluenceRelati
 				}
 				*/
 
+			}
+		}
+	}
+	
+}
+void HRmat_to_LR_percetion ( Mat& HRimg, LR_Pixel_Array& LR_pixels, InfluenceRelation& relations/*, Mat& PSF, bool is_super_PSF, double PSF_scale*/ )
+{
+	for (int k = 0; k < LR_pixels.LR_imgCount; k++) {
+		for (int i = 0; i < LR_pixels.LR_rows; i++) {
+			for (int j = 0; j < LR_pixels.LR_cols; j++) {
+				LR_Pixel& cur_LR_Pixel = LR_pixels.access(k, i, j);
+
+				cur_LR_Pixel.perception = 0;
+
+				for (int t = 0; t < cur_LR_Pixel.perception_link_cnt; t++) {
+					Perception_Pixel& cur_perception_pix = relations.perception_links[cur_LR_Pixel.perception_link_start + t];
+					cur_LR_Pixel.perception += 
+						cur_perception_pix.hPSF *
+						HRimg.at<uchar>(cur_perception_pix.pixel->i, cur_perception_pix.pixel->j);
+				}
 			}
 		}
 	}

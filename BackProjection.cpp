@@ -58,10 +58,14 @@ void BackProjection ( Mat& HRimg, double scale, vector<Mat>& imgs, vector<Mat>& 
 			for (k = 0; k < HR_pixels->access(i, j).influence_link_cnt; k++) {
 				tmp_sum += relations.influence_links[HR_pixels->access(i, j).influence_link_start + k].pixel->val;
 			}
-			if (HR_pixels->access(i, j).influence_link_cnt == 0) 
-				HRimg.at<double>(i,j) = tmp_sum;
-			else
-				HRimg.at<double>(i,j) = tmp_sum / HR_pixels->access(i, j).influence_link_cnt;
+			if (HR_pixels->access(i, j).influence_link_cnt == 0) {
+				HR_pixels->access(i, j).val = tmp_sum;
+				//HRimg.at<double>(i,j) = tmp_sum;
+			}
+			else {
+				HR_pixels->access(i, j).val = tmp_sum / HR_pixels->access(i, j).influence_link_cnt;
+				//HRimg.at<double>(i,j) = tmp_sum / HR_pixels->access(i, j).influence_link_cnt;
+			}
 
 			//for (k = 0; k < HR_pixels->access(i, j).influenced_pixels.size(); k++) {
 			//	tmp_sum += HR_pixels->access(i, j).influenced_pixels[k].pixel->val;
@@ -86,7 +90,7 @@ void BackProjection ( Mat& HRimg, double scale, vector<Mat>& imgs, vector<Mat>& 
 	while (!stop) {
 		epsi = 0;
 
-		HR_to_LR_percetion(HRimg, *LR_pixels, relations, super_PSF, true, interp_scale);
+		HR_to_LR_percetion(*HR_pixels, *LR_pixels, relations/*, super_PSF, true, interp_scale*/);
 
 		// see LR perception
 		/*
@@ -121,7 +125,8 @@ void BackProjection ( Mat& HRimg, double scale, vector<Mat>& imgs, vector<Mat>& 
 			}
 
 			// update HR
-			HRimg.at<double>(i,j) += sum_diff;
+			HR_pixels->access(i, j).val += sum_diff;
+			//HRimg.at<double>(i,j) += sum_diff;
 
 			// update epsi = max (sum_diff)
 			if (abs(sum_diff) > epsi) epsi = abs(sum_diff);
@@ -142,6 +147,10 @@ void BackProjection ( Mat& HRimg, double scale, vector<Mat>& imgs, vector<Mat>& 
 		}
 
 		iter++;
+	}
+
+	for (int i = 0; i < HRimg.rows; i++) for (int j = 0; j < HRimg.cols; j++) {
+		HRimg.at<double>(i, j) = HR_pixels->access(i, j).val;
 	}
 
 	cout << "BP iteration: " << iter << endl;
@@ -207,11 +216,14 @@ void BackProjection_Confidence ( Mat& HRimg, double scale, vector<Mat>& imgs, ve
 			for (k = 0; k < HR_pixels->access(i, j).influence_link_cnt; k++) {
 				tmp_sum += relations.influence_links[HR_pixels->access(i, j).influence_link_start + k].pixel->val;
 			}
-			if (HR_pixels->access(i, j).influence_link_cnt == 0) 
-				HRimg.at<double>(i,j) = tmp_sum;
-			else
-				HRimg.at<double>(i,j) = tmp_sum / HR_pixels->access(i, j).influence_link_cnt;
-
+			if (HR_pixels->access(i, j).influence_link_cnt == 0) {
+				HR_pixels->access(i, j).val = tmp_sum;
+				//HRimg.at<double>(i,j) = tmp_sum;
+			}
+			else {
+				HR_pixels->access(i, j).val = tmp_sum / HR_pixels->access(i, j).influence_link_cnt;
+				//HRimg.at<double>(i,j) = tmp_sum / HR_pixels->access(i, j).influence_link_cnt;
+			}
 			//for (k = 0; k < HR_pixels->access(i, j).influenced_pixels.size(); k++) {
 			//	tmp_sum += HR_pixels->access(i, j).influenced_pixels[k].pixel->val;
 			//}
@@ -235,7 +247,7 @@ void BackProjection_Confidence ( Mat& HRimg, double scale, vector<Mat>& imgs, ve
 	while (!stop) {
 		epsi = 0;
 
-		HR_to_LR_percetion(HRimg, *LR_pixels, relations, super_PSF, true, interp_scale);
+		HR_to_LR_percetion(*HR_pixels, *LR_pixels, relations/*, super_PSF, true, interp_scale*/);
 
 		// see LR perception
 		//
@@ -274,7 +286,8 @@ void BackProjection_Confidence ( Mat& HRimg, double scale, vector<Mat>& imgs, ve
 			sum_diff /= (BP_c * sum_hBP * sum_confidence);
 
 			// update HR
-			HRimg.at<double>(i,j) += sum_diff;
+			HR_pixels->access(i, j).val += sum_diff;
+			//HRimg.at<double>(i,j) += sum_diff;
 
 			// update epsi = max (sum_diff)
 			if (abs(sum_diff) > epsi) epsi = abs(sum_diff);
@@ -294,6 +307,10 @@ void BackProjection_Confidence ( Mat& HRimg, double scale, vector<Mat>& imgs, ve
 		}
 
 		iter++;
+	}
+
+	for (int i = 0; i < HRimg.rows; i++) for (int j = 0; j < HRimg.cols; j++) {
+		HRimg.at<double>(i, j) = HR_pixels->access(i, j).val;
 	}
 
 	cout << "BP iteration: " << iter << endl;
