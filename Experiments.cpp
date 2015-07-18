@@ -422,7 +422,7 @@ void flow2H_test () {
 }
 
 void LinearConstruct_test () {
-	String test_set = "bb1Crop2000";	
+	String test_set = "res256";	
 	int n = 4;
 
 	vector<Mat> imgsC1;
@@ -674,14 +674,26 @@ void LinearConstruct_test () {
 	BackProjection_Confidence(HRimg, 2, bpimg, bpflows, PSF, BPk, BPstop, confs);
 	*/
 	//DivideToBlocksToConstruct( imgsC1, combineFlows, symm_confs, PSF, scale, HRimg);
-	DivideToBlocksToConstruct( imgsC1, flows, confs, PSF, scale, HRimg);
+	//DivideToBlocksToConstruct( imgsC1, flows, confs, PSF, scale, HRimg);
+
+	
+	TermCriteria BPstop;
+	BPstop.type = TermCriteria::COUNT + TermCriteria::EPS;
+	BPstop.maxCount = 10;
+	BPstop.epsilon = 1;
+
+	BackProjection_Confidence(HRimg, 2, imgsC1, flows, PSF, BPk, BPstop, confs);
+	imwrite("output/" + test_set + "_BPC1_wConf.bmp", HRimg);
+	outputHRcolor(HRimg, imgsC3[0], HRimgC3);
+	imwrite("output/" + test_set + "_BPC3_wConf.bmp", HRimgC3);
+	//*/
 	/*
 	LinearConstructor linearConstructor( imgsC1, combineFlows, combineConfs, 2, PSF);
 	linearConstructor.addRegularization_grad2norm(0.05);
 	linearConstructor.solve_byCG();
 	linearConstructor.output(HRimg);
 	/**/
-	
+	/*
 	imwrite("output/" + test_set + "_LinearConstructC1_wConf.bmp", HRimg);
 	outputHRcolor(HRimg, imgsC3[0], HRimgC3);
 	imwrite("output/" + test_set + "_LinearConstructC3_wConf.bmp", HRimgC3);
@@ -691,19 +703,12 @@ void LinearConstruct_test () {
 	}
 	//*/
 	//DivideToBlocksToConstruct( imgsC1, combineFlows, symm_confs, PSF, 2, HRimg);
+	/*
 	DivideToBlocksToConstruct( imgsC1, blur_flows, blur_confs, PSF, 2, HRimg);
 	imwrite("output/" + test_set + "_LinearConstructC1_noConf.bmp", HRimg);
 	outputHRcolor(HRimg, imgsC3[0], HRimgC3);
 	imwrite("output/" + test_set + "_LinearConstructC3_noConf.bmp", HRimgC3);
 	//*/
-	/*
-	imwrite("output/" + test_set + "_LinearConstruct_HRC1_" + int2str(n) + "_Gaussian" + int2str(sigma) + ".bmp", HRimg);
-	outputHRcolor(HRimg, imgsC3[0], HRimgC3);
-	imwrite("output/" + test_set + "_LinearConstruct_HRC3_" + int2str(n) + "_Gaussian" + int2str(sigma) + ".bmp", HRimgC3);
-	/**/
-	/*writeImgDiff(imread("output/" + test_set + "_LinearConstruct_HR" + int2str(n) + "_CG.bmp", CV_LOAD_IMAGE_GRAYSCALE),
-		imread("Origin/" + test_set + "Ori_01.bmp", CV_LOAD_IMAGE_GRAYSCALE),
-		"output/" + test_set + "_OriginLinearConstruct" + int2str(n) + "_Diff.bmp");*/
 	/*
 	DivideToBlocksToConstruct( imgsC1, symm_flows, symm_confs, PSF, 2, HRimg);
 	imwrite("output/" + test_set + "_LinearConstruct_HRC1_" + int2str(n) + "_Gaussian" + int2str(sigma) + "_symm.bmp", HRimg);
@@ -811,19 +816,17 @@ void OptFlow_BP_test () {
 		imwrite("output/" + test_set + "256_" + int2str(k+1) + "warpto1.bmp", warps[k]);
 	}
 	/**/
-	Mat HRimg;
-	Mat PSF = Mat::zeros(3,3,CV_64F);
-	Mat BPk = PSF;
 	
-	PSF.at<double>(0,0) = 0.0113;
-	PSF.at<double>(0,1) = 0.0838;
-	PSF.at<double>(0,2) = 0.0113;
-	PSF.at<double>(1,0) = 0.0838;
-	PSF.at<double>(1,1) = 0.6193;
-	PSF.at<double>(1,2) = 0.0838;
-	PSF.at<double>(2,0) = 0.0113;
-	PSF.at<double>(2,1) = 0.0838;
-	PSF.at<double>(2,2) = 0.0113;
+
+	double scale = 2;
+	Mat dot = Mat::zeros(5,5,CV_64F);
+	dot.at<double>(2, 2) = 1; 
+
+	double PSF_sigma = 0.7 * SQR(scale/2);
+	Mat PSF = Mat::zeros(5,5,CV_64F);
+	GaussianBlur(dot, PSF, Size( 5, 5), PSF_sigma, PSF_sigma, BORDER_REPLICATE);
+
+	Mat BPk = PSF;
 
 	TermCriteria BPstop;
 	BPstop.type = TermCriteria::COUNT + TermCriteria::EPS;
@@ -833,6 +836,8 @@ void OptFlow_BP_test () {
 	vector<Mat> imgs;
 
 	imgs.push_back(imgsC1[0]);
+
+	Mat HRimg;
 
 	BackProjection(HRimg, 2, imgs, flows, PSF, BPk, BPstop);
 	imwrite("output/" + test_set + "_HR_singleBP.bmp", HRimg);
