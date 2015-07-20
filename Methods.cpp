@@ -788,7 +788,7 @@ void DivideToBlocksToConstruct(vector<Mat>& BigLRimgs, vector<Mat>& BigFlows, ve
 			}
 			Mat SmallHRimg;
 			// ----- CONSTRUCTION -----
-			LinearConstructor linearConstructor( imagesBlock, flowsBlock, confsBlock, scale, PSF);
+			Linear_Constructor linearConstructor( imagesBlock, flowsBlock, confsBlock, scale, PSF);
 			linearConstructor.addRegularization_grad2norm(0.05);
 			linearConstructor.solve_byCG();
 			linearConstructor.output(SmallHRimg);

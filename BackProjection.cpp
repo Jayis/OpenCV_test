@@ -6,7 +6,7 @@ void BackProjection ( Mat& HRimg, double scale, vector<Mat>& imgs, vector<Mat>& 
 
 	// parameter
 	double BP_c = 1;
-	double interp_scale = 1000;
+	double interp_scale = 500;
 
 	int i, j, k;
 
@@ -46,7 +46,6 @@ void BackProjection ( Mat& HRimg, double scale, vector<Mat>& imgs, vector<Mat>& 
 							super_PSF,
 							super_BPk,
 							interp_scale);
-	
 
 	// test bucket, forming HR initial guess
 	HRimg = Mat::zeros(HR_rows, HR_cols, CV_64F);
@@ -165,7 +164,7 @@ void BackProjection_Confidence ( Mat& HRimg, double scale, vector<Mat>& imgs, ve
 
 	// parameter
 	double BP_c = 1;
-	double interp_scale = 1000;
+	double interp_scale = 500;
 
 	int i, j, k, x, y;
 
@@ -283,7 +282,7 @@ void BackProjection_Confidence ( Mat& HRimg, double scale, vector<Mat>& imgs, ve
 				//sum_diff += diff *  cur_hBP  * cur_confidence;	
 			}
 			// deal with constant & weight normalization
-			sum_diff /= (BP_c * sum_hBP * sum_confidence);
+			sum_diff /= (BP_c * sum_hBP /** sum_confidence*/);
 
 			// update HR
 			HR_pixels->access(i, j).val += sum_diff;

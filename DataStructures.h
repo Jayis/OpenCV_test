@@ -98,10 +98,30 @@ public:
 							double scale,
 							Mat& super_PSF,
 							Mat& super_BPk,
+							double interp_scale, 
+							vector<Mat>& confs);
+	InfluenceRelation(vector<Mat>& imgs,
+							vector<Mat>& flows,
+							LR_Pixel_Array* LR_pixels,
+							HR_Pixel_Array*  HR_pixels,
+							double scale,
+							Mat& super_PSF,
+							Mat& super_BPk,
 							double interp_scale);
 
 	vector<Influenced_Pixel> influence_links;
 	vector<Perception_Pixel> perception_links;
+
+private:
+	void constructor(vector<Mat>& imgs,
+							vector<Mat>& flows,
+							LR_Pixel_Array* LR_pixels,
+							HR_Pixel_Array*  HR_pixels,
+							double scale,
+							Mat& super_PSF,
+							Mat& super_BPk,
+							double interp_scale,
+							vector<Mat>& confs);
 };
 
 //-----SparseMat

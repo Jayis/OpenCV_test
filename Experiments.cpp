@@ -550,10 +550,10 @@ void LinearConstruct_test () {
 		time0 = time1;
 
 		//imwrite("output/SFconf_" + test_set + int2str(k) + "to0.bmp", confs[k]*254);
-		imwrite("output/conf_" + test_set + int2str(k) + "to0.bmp", confs[k]*254);
+		//imwrite("output/conf_" + test_set + int2str(k) + "to0.bmp", confs[k]*254);
 		//imwrite("output/newConf_" + test_set + int2str(k) + "to0.bmp", newConfs[k]*254);
-		imwrite("output/blurConfGaussian" + int2str(sigma) + "_" +  test_set + int2str(k) + "to0.bmp", blur_confs[k]*254);
-		//imwrite("output/Conf_" + test_set + int2str(k) + "to0.bmp", symm_confs[k]*255);
+		//imwrite("output/blurConfGaussian" + int2str(sigma) + "_" +  test_set + int2str(k) + "to0.bmp", blur_confs[k]*254);
+		imwrite("output/Conf_" + test_set + int2str(k) + "to0.bmp", symm_confs[k]*255);
 		
 		Mat warpImg;
 		/*
@@ -614,8 +614,11 @@ void LinearConstruct_test () {
 		combineFlows[k] = flows[k];
 		/**/
 
+		symm_confs[k] = 1;
+
 		combineConfs[k] = symm_confs[k];
 		combineFlows[k] = symm_flows[k];
+
 		/**/
 		//imwrite("output/combineConfs_" + test_set + int2str(k) + "to0.bmp", combineConfs[k]*254);	
 
@@ -635,54 +638,20 @@ void LinearConstruct_test () {
 
 	Mat BPk = PSF;
 	
-	/*
-	// gaussian [3 3], sigma = 0.5
-	PSF.at<double>(0,0) = 0.0113;
-	PSF.at<double>(0,2) = PSF.at<double>(0,0);
-	PSF.at<double>(2,2) = PSF.at<double>(0,0);
-	PSF.at<double>(2,0) = PSF.at<double>(0,0);
-	PSF.at<double>(0,1) = 0.0838;
-	PSF.at<double>(1,0) = PSF.at<double>(0,1);
-	PSF.at<double>(1,2) = PSF.at<double>(0,1);
-	PSF.at<double>(2,1) = PSF.at<double>(0,1);
-	PSF.at<double>(1,1) = 0.6193;
-	*/
-	/*
-	// gaussian [3 3], sigma = 1;
-	PSF.at<double>(0,0) = 0.0751;
-	PSF.at<double>(0,2) = PSF.at<double>(0,0);
-	PSF.at<double>(2,2) = PSF.at<double>(0,0);
-	PSF.at<double>(2,0) = PSF.at<double>(0,0);
-	PSF.at<double>(0,1) = 0.1238;
-	PSF.at<double>(1,0) = PSF.at<double>(0,1);
-	PSF.at<double>(1,2) = PSF.at<double>(0,1);
-	PSF.at<double>(2,1) = PSF.at<double>(0,1);
-	PSF.at<double>(1,1) = 0.2042;
-	*/
-	
 	Mat HRimg, HRimgC3;
-	/*
-	TermCriteria BPstop;
-	BPstop.type = TermCriteria::COUNT + TermCriteria::EPS;
-	BPstop.maxCount = 10;
-	BPstop.epsilon = 1;
-
-	vector<Mat> bpimg, bpflows;
-	bpimg.push_back(imgsC1[3]);
-	bpflows.push_back(combineFlows[3]);
-
-	BackProjection_Confidence(HRimg, 2, bpimg, bpflows, PSF, BPk, BPstop, confs);
-	*/
+	
 	//DivideToBlocksToConstruct( imgsC1, combineFlows, symm_confs, PSF, scale, HRimg);
 	//DivideToBlocksToConstruct( imgsC1, flows, confs, PSF, scale, HRimg);
-
 	
 	TermCriteria BPstop;
-	BPstop.type = TermCriteria::COUNT + TermCriteria::EPS;
-	BPstop.maxCount = 10;
+	BPstop.type = TermCriteria::COUNT + TermCriteria::EPS/**/;
+	BPstop.maxCount = 500;
 	BPstop.epsilon = 1;
 
-	BackProjection_Confidence(HRimg, 2, imgsC1, flows, PSF, BPk, BPstop, confs);
+	BP_Constructor BPconstructor(HRimg, scale, imgsC1, combineFlows, PSF, BPk, BPstop, combineConfs);
+
+	//BackProjection(HRimg, scale, imgsC1, combineFlows, PSF, BPk, BPstop);
+	//BackProjection_Confidence(HRimg, scale, imgsC1, combineFlows, PSF, BPk, BPstop, combineConfs);
 	imwrite("output/" + test_set + "_BPC1_wConf.bmp", HRimg);
 	outputHRcolor(HRimg, imgsC3[0], HRimgC3);
 	imwrite("output/" + test_set + "_BPC3_wConf.bmp", HRimgC3);

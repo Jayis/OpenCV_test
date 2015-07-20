@@ -10,12 +10,12 @@
 using namespace cv;
 using namespace Eigen;
 
-class LinearConstructor
+class Linear_Constructor
 {
 public:
-	LinearConstructor( vector<Mat>& LR_imgs, vector<Mat>& flows, double scale, Mat& PSF);
-	LinearConstructor( vector<Mat>& LR_imgs, vector<Mat>& flows, vector<Mat> confs, double scale, Mat& PSF);
-	~LinearConstructor();
+	Linear_Constructor( vector<Mat>& LR_imgs, vector<Mat>& flows, double scale, Mat& PSF);
+	Linear_Constructor( vector<Mat>& LR_imgs, vector<Mat>& flows, vector<Mat> confs, double scale, Mat& PSF);
+	~Linear_Constructor();
 	
 	void addRegularization_grad2norm(double gamma);
 
@@ -25,6 +25,8 @@ public:
 	void output(Mat& HRimg);
 
 private:
+	void constructor( vector<Mat>& LR_imgs, vector<Mat>& flows, vector<Mat> confs, double scale, Mat& PSF);
+
 	void addDataFidelity( );
 	void addDataFidelityWithConf(vector<Mat>& conf );
 

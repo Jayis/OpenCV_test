@@ -96,8 +96,60 @@ InfluenceRelation::InfluenceRelation(vector<Mat>& imgs,
 							Mat& super_BPk,
 							double interp_scale)
 {
+	
+	vector<Mat> confs;
+	confs.resize(imgs.size());
+	confs[0] = Mat::ones(imgs[0].size(), CV_64F);
+	for(int i = 1; i < confs.size(); i++) {
+		confs[i] = confs[0];
+	}
+
+	constructor(imgs,
+							flows,
+							LR_pixels,
+							HR_pixels,
+							scale,
+							super_PSF,
+							super_BPk,
+							interp_scale,
+							confs);
+	//*/
+
+}
+
+InfluenceRelation::InfluenceRelation(vector<Mat>& imgs,
+							vector<Mat>& flows,
+							LR_Pixel_Array* LR_pixels,
+							HR_Pixel_Array*  HR_pixels,
+							double scale,
+							Mat& super_PSF,
+							Mat& super_BPk,
+							double interp_scale,
+							vector<Mat>& confs)
+{
 	cout << "formInfluenceRelation(Object)" << endl;
 
+	constructor(imgs,
+							flows,
+							LR_pixels,
+							HR_pixels,
+							scale,
+							super_PSF,
+							super_BPk,
+							interp_scale,
+							confs);
+}
+
+void InfluenceRelation::constructor(vector<Mat>& imgs,
+							vector<Mat>& flows,
+							LR_Pixel_Array* LR_pixels,
+							HR_Pixel_Array*  HR_pixels,
+							double scale,
+							Mat& super_PSF,
+							Mat& super_BPk,
+							double interp_scale,
+							vector<Mat>& confs)
+{
 	int i, j, k;
 	int x, y;
 	
@@ -167,6 +219,7 @@ InfluenceRelation::InfluenceRelation(vector<Mat>& imgs,
 				LR_pixels->access(k, i, j).val = (double)imgs[k].at<uchar>(i,j);
 				LR_pixels->access(k, i, j).pos_x = pos_x;
 				LR_pixels->access(k, i, j).pos_y = pos_y;
+				LR_pixels->access(k, i, j).confidence = confs[k].at<double>(i, j);
 
 				// add to those buckets within radius
 				// for each possible bucket
@@ -259,7 +312,6 @@ InfluenceRelation::InfluenceRelation(vector<Mat>& imgs,
 			LR_pixels->access(cur_lr_idx).perception_link_cnt++;
 		}
 	}
-
 }
 
 //-----

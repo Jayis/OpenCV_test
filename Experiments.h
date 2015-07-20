@@ -15,6 +15,7 @@
 #include "Mod_tv1flow.h"
 #include "SymmConfOptFlowTV1.h"
 #include "GA_Reconstruction.h"
+#include "BP_Reconstruction.h"
 
 using namespace std;
 using namespace cv;
