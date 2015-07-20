@@ -72,6 +72,8 @@ public:
 	HR_Pixel& access(int i, int j);
 	HR_Pixel& access(int idx);
 
+	void clear_link();
+
 	int HR_rows, HR_cols;
 	int HR_pixelCount;
 private:
@@ -85,6 +87,9 @@ public:
 
 	LR_Pixel& access(int k, int i, int j);
 	LR_Pixel& access(int idx);
+
+	void clear_link();
+
 	int LR_imgCount;
 	int LR_pixelCount;
 	int LR_rows, LR_cols;
@@ -112,6 +117,14 @@ public:
 							Mat& super_BPk,
 							double interp_scale);
 
+	InfluenceRelation(vector<Mat>& imgs,
+		vector<Mat>& flows,
+		DataChunk& dataChunk,
+		double scale,
+		Mat& super_PSF,
+		Mat& super_BPk,
+		double interp_scale);
+
 	vector<Influenced_Pixel> influence_links;
 	vector<Perception_Pixel> perception_links;
 
@@ -132,17 +145,23 @@ class DataChunk
 public:
 	Mat smallHR;
 	Rect inBigHR, inSmallHR;
+	vector<HR_Pixel*> data_HR_pix;
 	vector<LR_Pixel*> data_LR_pix;
+
+	HR_Pixel_Array*  HR_pixels;
+	LR_Pixel_Array* LR_pixels;
 };
 
 class Divided2Blocks
 {
 public:
-	Divided2Blocks(LR_Pixel_Array& LR_pixels,
+	Divided2Blocks(vector<Mat>& imgs,
+		vector<Mat>& confs,
+		LR_Pixel_Array& LR_pixels,
 		HR_Pixel_Array&  HR_pixels,
-		InfluenceRelation& relations);
+		vector<Mat>& flows);
 
-	vector< DataChunk > dataChunks;
+	vector< vector< DataChunk > > dataChunks;
 
 private:
 	int overlappingPix;
@@ -150,6 +169,8 @@ private:
 	int LR_imgCount;
 	int longSide, totalBlocksCount;
 	double blockPerAxis, blockWidth, blockHeight;
+
+
 };
 
 //-----SparseMat
