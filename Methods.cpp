@@ -737,7 +737,7 @@ void DivideToBlocksToConstruct(vector<Mat>& BigLRimgs, vector<Mat>& BigFlows, ve
 	int totalBlocksCount = pow(4, floor(log(longSide/200.f)/log(2.0f))); // origin: ceil
 
 	double blockPerAxis = sqrt(totalBlocksCount);
-	cout << endl << "Total Blocks: " << blockPerAxis << endl;
+	cout << endl << "blockPerAxis: " << blockPerAxis << endl;
 	double blockWidth = double(BigLR_cols)/blockPerAxis;
 	double blockHeight = double(BigLR_rows)/blockPerAxis;
 	int blockCount = 0;

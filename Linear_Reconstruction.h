@@ -15,12 +15,15 @@ class Linear_Constructor
 public:
 	Linear_Constructor( vector<Mat>& LR_imgs, vector<Mat>& flows, double scale, Mat& PSF);
 	Linear_Constructor( vector<Mat>& LR_imgs, vector<Mat>& flows, vector<Mat> confs, double scale, Mat& PSF);
+	Linear_Constructor( DataChunk& dataChunk );
 	~Linear_Constructor();
 	
 	void addRegularization_grad2norm(double gamma);
 
 	void solve_bySparseQR();	// error
 	void solve_byCG();
+
+	void solve_BlockByBlock();
 
 	void output(Mat& HRimg);
 
@@ -29,6 +32,7 @@ private:
 
 	void addDataFidelity( );
 	void addDataFidelityWithConf(vector<Mat>& conf );
+	void addDataFidelityWithConf(DataChunk& dataChunk);
 
 	vector<T> A_triplets;
 	vector<double> b_vec;
@@ -44,4 +48,6 @@ private:
 	HR_Pixel_Array* HR_pixels;
 	LR_Pixel_Array* LR_pixels;
 	InfluenceRelation* relations;
+
+	Divided2Blocks* divided2Blocks;
 };

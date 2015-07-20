@@ -314,6 +314,108 @@ void InfluenceRelation::constructor(vector<Mat>& imgs,
 	}
 }
 
+Divided2Blocks::Divided2Blocks(LR_Pixel_Array& LR_pixels,
+							   HR_Pixel_Array&  HR_pixels,
+							   InfluenceRelation& relations)
+{
+	// parameters
+	BigLR_rows = LR_pixels.LR_rows;
+	BigLR_cols = LR_pixels.LR_cols;
+	BigHR_rows = HR_pixels.HR_rows;
+	BigHR_cols = HR_pixels.HR_cols;
+	LR_imgCount = LR_pixels.LR_imgCount;
+
+	overlappingPix = (HR_pixels.HR_rows / LR_pixels.LR_rows) + 1;
+	
+	longSide = (BigHR_rows > BigHR_cols) ? BigHR_rows : BigHR_cols;
+	totalBlocksCount = pow(4, floor(log(longSide/200.f)/log(2.0f))); // origin: ceil
+
+	blockPerAxis = sqrt(totalBlocksCount);
+	blockWidth = double(BigHR_cols)/blockPerAxis;
+	blockHeight = double(BigHR_rows)/blockPerAxis;
+
+	int blockCount = 0;
+
+	for (int i = 0; i < BigHR_rows; i += blockHeight) for (int j = 0; j < BigHR_cols; j += blockWidth)
+	{
+		blockCount++;
+	}
+	dataChunks.resize(blockCount);
+
+	int blockIdx = 0;
+	for (int i = 0; i < BigHR_rows; i += blockHeight) for (int j = 0; j < BigHR_cols; j += blockWidth)
+	{
+		int leftBorder, rightBorder, upBorder, downBorder;
+		int rectWidth, rectHeight;
+		//
+		if (i - overlappingPix >= 0) {
+			leftBorder = i - overlappingPix;
+		}
+		else {
+			leftBorder = 0;
+		}
+		//
+		if (i + overlappingPix < BigHR_rows) {
+			rightBorder = i + overlappingPix;
+		}
+		else {
+			rightBorder = BigHR_rows;
+		}
+		//
+		if (j - overlappingPix >= 0) {
+			upBorder = j - overlappingPix;
+		}
+		else {
+			upBorder = BigHR_cols;
+		}
+		//
+		if (j + overlappingPix < BigHR_cols) {
+			downBorder = j + overlappingPix;
+		}
+		else {
+			downBorder = BigHR_cols;
+		}
+
+		//
+		if (i + blockHeight > BigHR_rows) {
+			rectHeight = BigHR_rows - i;
+		}
+		else{
+			rectHeight = blockHeight;
+		}
+		//
+		if (i + blockWidth > BigHR_cols) {
+			rectWidth = BigHR_cols - j;
+		}
+		else{
+			rectWidth = blockWidth;
+		}
+
+		//
+		dataChunks[blockIdx].inBigHR = Rect(j, i, rectWidth, rectHeight);
+		dataChunks[blockIdx].inSmallHR = Rect(j - leftBorder, i - upBorder, rectWidth, rectHeight);
+
+		// initial LR_pixel record
+		for (int k = 0; k < LR_imgCount; k++) for(int lr_i = 0; lr_i < BigLR_rows; lr_i++) for(int lr_j = 0; lr_j < BigLR_cols; lr_j++)
+		{
+			LR_pixels.access(k, lr_i, lr_j).picked = false;
+		}
+		// pick LR_pixel
+		for (int hr_i = upBorder; hr_i < downBorder; hr_i++) for (int hr_j = leftBorder; hr_j < rightBorder; hr_j++)
+		{
+			for (int idx = 0; idx < HR_pixels.access(hr_i, hr_j).influence_link_cnt; idx++ ) {
+				LR_Pixel* cur_LR_pix = relations.influence_links[HR_pixels.access(hr_i, hr_j).influence_link_start + idx].pixel;
+				if (!cur_LR_pix->picked) {
+					dataChunks[blockIdx].data_LR_pix.push_back(cur_LR_pix);
+
+					cur_LR_pix->picked = true;
+				}
+			}
+			
+		}
+	}
+}
+
 //-----
 MySparseMat::MySparseMat()
 {

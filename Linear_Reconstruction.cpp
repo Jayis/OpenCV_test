@@ -5,7 +5,7 @@ Linear_Constructor::Linear_Constructor( vector<Mat>& LR_imgs, vector<Mat>& flows
 
 	vector<Mat> confs;
 	confs.resize(LR_imgs.size());
-	confs[0] = Mat::zeros(LR_imgs[0].size(), CV_64F);
+	confs[0] = Mat::ones(LR_imgs[0].size(), CV_64F);
 	for (int i = 0; i < confs.size(); i++) 
 	{
 		confs[i] = confs[0];
@@ -27,6 +27,18 @@ Linear_Constructor::Linear_Constructor( vector<Mat>& LR_imgs, vector<Mat>& flows
 	//
 	curRow = 0;
 	addDataFidelityWithConf(confs);
+
+	cout << "----- Linear-Constructor ----- CONSTRUCT COMPLETE\n";
+}
+
+Linear_Constructor::Linear_Constructor( DataChunk& dataChunk ) {
+	cout << "----- Linear-Constructor (Block) -----\n";
+
+	HR_rows = dataChunk.inBigHR.height;
+	HR_cols = dataChunk.inBigHR.width;
+
+	curRow = 0;
+
 
 	cout << "----- Linear-Constructor ----- CONSTRUCT COMPLETE\n";
 }
@@ -67,6 +79,8 @@ void Linear_Constructor::constructor( vector<Mat>& LR_imgs, vector<Mat>& flows, 
 							super_BPk,
 							interp_scale,
 							confs);
+
+	divided2Blocks = new Divided2Blocks(*LR_pixels, *HR_pixels, *relations);
 }
 
 void Linear_Constructor::addDataFidelity( ) {
@@ -113,7 +127,61 @@ void Linear_Constructor::addDataFidelityWithConf(vector<Mat>& conf ) {
 
 		for (int ii = 0; ii < LR_rows; ii++) for (int jj = 0; jj < LR_cols; jj++) {
 			LR_Pixel& cur_LR_pix = LR_pixels->access(k, ii, jj);
-			curConf = conf[k].at<double>(ii, jj);
+			//curConf = conf[k].at<double>(ii, jj);
+			curConf = cur_LR_pix.confidence;
+
+			// A
+			for (int p = 0; p < cur_LR_pix.perception_link_cnt; p++) {
+				Perception_Pixel& cur_perception_pix = relations->perception_links[cur_LR_pix.perception_link_start + p];
+				sourcePos2ColIdx = cur_perception_pix.pixel -> i * HR_cols + cur_perception_pix.pixel -> j;
+
+				A_triplets.push_back( T(curRow, sourcePos2ColIdx, curConf * cur_perception_pix.hPSF) );	
+			}
+			// b
+			b_vec.push_back( curConf * cur_LR_pix.val );
+
+			// iteration update
+			curRow++;
+		}
+
+	}
+
+}
+
+void Linear_Constructor::addDataFidelityWithConf(DataChunk& dataChunk ) {
+	cout << "add Data Fidelity Term (chunk)\n";
+
+	int sourcePos2ColIdx;
+	double curConf;
+
+	//A_triplets.reserve(relations->perception_links.size());
+	//b_vec.reserve(LR_imgCount*LR_pixelCount);
+
+	for (int idx = 0; idx < dataChunk.data_LR_pix.size(); idx ++) {
+		LR_Pixel& cur_LR_pix = *(dataChunk.data_LR_pix[idx]);
+		curConf = cur_LR_pix.confidence;
+
+		// A
+		for (int p = 0; p < cur_LR_pix.perception_link_cnt; p++) {
+			Perception_Pixel& cur_perception_pix = relations->perception_links[cur_LR_pix.perception_link_start + p];
+			sourcePos2ColIdx = cur_perception_pix.pixel -> i * HR_cols + cur_perception_pix.pixel -> j;
+			
+			A_triplets.push_back( T(curRow, sourcePos2ColIdx, curConf * cur_perception_pix.hPSF) );	
+		}
+		// b
+		b_vec.push_back( curConf * cur_LR_pix.val );
+		
+		// iteration update
+		curRow++;
+
+	}
+
+	for (int k = 0; k < LR_imgCount; k++) {
+
+		for (int ii = 0; ii < LR_rows; ii++) for (int jj = 0; jj < LR_cols; jj++) {
+			LR_Pixel& cur_LR_pix = LR_pixels->access(k, ii, jj);
+			//curConf = conf[k].at<double>(ii, jj);
+			curConf = cur_LR_pix.confidence;
 
 			// A
 			for (int p = 0; p < cur_LR_pix.perception_link_cnt; p++) {
@@ -190,6 +258,8 @@ void Linear_Constructor::solve_bySparseQR() {
 }
 
 void Linear_Constructor::solve_byCG() {
+	
+
 	cout << "solve by CG\n";
 
 	A = EigenSpMat( curRow, HR_pixelCount );
@@ -220,6 +290,14 @@ void Linear_Constructor::solve_byCG() {
 	ConjugateGradient<EigenSpMat> CG_sover(ATA);
 	cout << "solving...\n";
 	x = CG_sover.solve(ATb);
+}
+
+void Linear_Constructor::solve_BlockByBlock() {
+	for (int idx = 0; idx < divided2Blocks->dataChunks.size(); idx++) {
+		curRow = 0;
+		addDataFidelityWithConf(divided2Blocks->dataChunks[idx]);
+
+	}
 }
 
 void Linear_Constructor::output(Mat& HRimg) {

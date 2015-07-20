@@ -40,9 +40,12 @@ public:
 
 	double confidence;
 	double perception;
-	//vector<Perception_Pixel> perception_pixels;
+
 	int perception_link_start;
 	int perception_link_cnt;
+
+	// for Divided2Block use
+	bool picked;
 };
 
 class Influenced_Pixel {
@@ -122,6 +125,31 @@ private:
 							Mat& super_BPk,
 							double interp_scale,
 							vector<Mat>& confs);
+};
+
+class DataChunk
+{
+public:
+	Mat smallHR;
+	Rect inBigHR, inSmallHR;
+	vector<LR_Pixel*> data_LR_pix;
+};
+
+class Divided2Blocks
+{
+public:
+	Divided2Blocks(LR_Pixel_Array& LR_pixels,
+		HR_Pixel_Array&  HR_pixels,
+		InfluenceRelation& relations);
+
+	vector< DataChunk > dataChunks;
+
+private:
+	int overlappingPix;
+	int BigLR_rows, BigLR_cols, BigHR_rows, BigHR_cols;
+	int LR_imgCount;
+	int longSide, totalBlocksCount;
+	double blockPerAxis, blockWidth, blockHeight;
 };
 
 //-----SparseMat
