@@ -332,22 +332,15 @@ void InfluenceRelation::constructor(vector<Mat>& imgs,
 	}
 }
 
-InfluenceRelation::InfluenceRelation(vector<Mat>& imgs,
-		vector<Mat>& flows,
+InfluenceRelation::InfluenceRelation(//vector<Mat>& imgs,
+		//vector<Mat>& flows,
 		DataChunk& dataChunk,
-		double scale,
 		Mat& super_PSF,
 		Mat& super_BPk,
 		double interp_scale)
 {
 	int i, j, k;
 	int x, y;
-	
-	int LR_rows = imgs[0].rows;
-	int LR_cols = imgs[0].cols;
-	int HR_rows = LR_rows * scale;
-	int HR_cols = LR_cols * scale;
-	int LR_imgCount = imgs.size();
 	
 	int PSF_radius_x = super_PSF.cols / interp_scale / 2;
 	int PSF_radius_y = super_PSF.rows / interp_scale / 2;
@@ -374,7 +367,8 @@ InfluenceRelation::InfluenceRelation(vector<Mat>& imgs,
 				bucket_center_x = bucket_idx_j + 0.5;
 				bucket_center_y = bucket_idx_i + 0.5;
 				// check if bucket exist
-				if (bucket_center_x < 0 || bucket_center_y < 0 || bucket_center_y >= HR_rows || bucket_center_x >= HR_cols)
+				if (bucket_center_x < dataChunk.leftBorder || bucket_center_y < dataChunk.upBorder ||
+					bucket_center_y >= dataChunk.downBorder || bucket_center_x >= dataChunk.rightBorder)
 					continue;
 				// check if within PSF_radius
 				dx = pos_x - bucket_center_x;
@@ -408,7 +402,8 @@ InfluenceRelation::InfluenceRelation(vector<Mat>& imgs,
 				bucket_center_x = bucket_idx_j + 0.5;
 				bucket_center_y = bucket_idx_i + 0.5;
 				// check if bucket exist
-				if (bucket_center_x < 0 || bucket_center_y < 0 || bucket_center_y >= HR_rows || bucket_center_x >= HR_cols)
+				if (bucket_center_x < dataChunk.leftBorder || bucket_center_y < dataChunk.upBorder ||
+					bucket_center_y >= dataChunk.downBorder || bucket_center_x >= dataChunk.rightBorder)
 					continue;
 				// check if within PSF_radius
 				dx = pos_x - bucket_center_x;
@@ -431,16 +426,16 @@ InfluenceRelation::InfluenceRelation(vector<Mat>& imgs,
 				super_offset_y = offset_y * interp_scale;
 				tmp_pix.hBP = super_BPk.at<double>(super_offset_x, super_offset_y);
 				// add to bucket
-				dataChunk.HR_pixels->access( bucket_idx_i, bucket_idx_j).hBP_sum += tmp_pix.hBP;
+				dataChunk.tmp_HR_pixels->access( bucket_idx_i - dataChunk.upBorder, bucket_idx_j - dataChunk.leftBorder).hBP_sum += tmp_pix.hBP;
 				// we now save all influenced_pixels to influence_links
 				//HR_pixels->access( bucket_idx_i, bucket_idx_j).influenced_pixels.push_back( tmp_pix );
-				tmp_pix.hr_idx = (bucket_idx_i * HR_cols + bucket_idx_j);
-				tmp_pix.lr_idx = (k * dataChunk.LR_pixels->LR_pixelCount + i * LR_cols + j);
+				tmp_pix.hr_idx = ((bucket_idx_i-dataChunk.upBorder) * (dataChunk.SmallHR_cols) + bucket_idx_j-dataChunk.leftBorder);
+				tmp_pix.lr_idx = lr_idx;
 				influence_links.push_back( tmp_pix );						
 
 				// create a perception relation
 				Perception_Pixel tmp_pix2;
-				tmp_pix2.pixel = &(dataChunk.HR_pixels->access( bucket_idx_i, bucket_idx_j));
+				tmp_pix2.pixel = &(dataChunk.tmp_HR_pixels->access( bucket_idx_i-dataChunk.upBorder, bucket_idx_j - dataChunk.leftBorder));
 				// ----- hpsf
 				offset_x = (dx) + PSF_radius_x + 0.5;
 				offset_y = (dy) + PSF_radius_y + 0.5;
@@ -452,8 +447,8 @@ InfluenceRelation::InfluenceRelation(vector<Mat>& imgs,
 
 				// we now save all perception_pixels to perception_links
 				//LR_pixels->access(k, i, j).perception_pixels.push_back(tmp_pix2);
-				tmp_pix2.hr_idx = (bucket_idx_i * HR_cols + bucket_idx_j);
-				tmp_pix2.lr_idx = (k * dataChunk.LR_pixels->LR_pixelCount + i * LR_cols + j);
+				tmp_pix2.hr_idx = ((bucket_idx_i-dataChunk.upBorder) * (dataChunk.SmallHR_cols) + bucket_idx_j-dataChunk.leftBorder);
+				tmp_pix2.lr_idx = lr_idx;
 				perception_links.push_back( tmp_pix2 );
 			}
 		}
@@ -462,248 +457,42 @@ InfluenceRelation::InfluenceRelation(vector<Mat>& imgs,
 	sort (influence_links.begin(), influence_links.end(), compare_hr_idx);
 	sort (perception_links.begin(), perception_links.end(), compare_lr_idx);
 
-	dataChunk.HR_pixels->clear_link();
-	dataChunk.LR_pixels->clear_link();
-
 	// influence_links assign to hr_pixels
 	int cur_hr_idx = -1;
 	for (int idx = 0; idx < influence_links.size(); idx++) {
 		if (cur_hr_idx != influence_links[idx].hr_idx) {
 			cur_hr_idx = influence_links[idx].hr_idx;
-			dataChunk.HR_pixels->access(cur_hr_idx).influence_link_start = idx;
-			dataChunk.HR_pixels->access(cur_hr_idx).influence_link_cnt++;
+			dataChunk.tmp_HR_pixels->access(cur_hr_idx).influence_link_start = idx;
+			dataChunk.tmp_HR_pixels->access(cur_hr_idx).influence_link_cnt++;
 		}
 		else {
-			dataChunk.HR_pixels->access(cur_hr_idx).influence_link_cnt++;
+			dataChunk.tmp_HR_pixels->access(cur_hr_idx).influence_link_cnt++;
 		}
 	}
 
+	for (int idx = 0; idx < dataChunk.data_LR_pix.size(); idx++) {
+		dataChunk.data_LR_pix[idx]->perception_link_cnt = 0;
+	}
 	// perception_links assign to lr_pixels
 	int cur_lr_idx = -1;
 	for (int idx = 0; idx < perception_links.size(); idx++) {
 		if (cur_lr_idx != perception_links[idx].lr_idx) {
 			cur_lr_idx = perception_links[idx].lr_idx;
-			dataChunk.LR_pixels->access(cur_lr_idx).perception_link_start = idx;
-			dataChunk.LR_pixels->access(cur_lr_idx).perception_link_cnt++;
+			dataChunk.data_LR_pix[cur_lr_idx]->perception_link_start = idx;
+			dataChunk.data_LR_pix[cur_lr_idx]->perception_link_cnt++;
 		}
 		else {
-			dataChunk.LR_pixels->access(cur_lr_idx).perception_link_cnt++;
+			dataChunk.data_LR_pix[cur_lr_idx]->perception_link_cnt++;
 		}
 	}
 }
-
-Divided2Blocks::Divided2Blocks(vector<Mat>& imgs,
-							   vector<Mat>& confs,
-							   LR_Pixel_Array& LR_pixels,
-							   HR_Pixel_Array&  HR_pixels,
-							   vector<Mat>& flows)
+/*
+InfluenceRelation::~InfluenceRelation()
 {
-	// parameters
-	BigLR_rows = LR_pixels.LR_rows;
-	BigLR_cols = LR_pixels.LR_cols;
-	BigHR_rows = HR_pixels.HR_rows;
-	BigHR_cols = HR_pixels.HR_cols;
-	LR_imgCount = LR_pixels.LR_imgCount;
-
-	overlappingPix = (HR_pixels.HR_rows / LR_pixels.LR_rows) + 1;
-	
-	longSide = (BigHR_rows > BigHR_cols) ? BigHR_rows : BigHR_cols;
-	totalBlocksCount = pow(4, floor(log(longSide/200.f)/log(2.0f))); // origin: ceil
-
-	blockPerAxis = sqrt(totalBlocksCount);
-	blockWidth = double(BigHR_cols)/blockPerAxis;
-	blockHeight = double(BigHR_rows)/blockPerAxis;
-
-	// tmp variable
-	double pos_x, pos_y;
-	double scale = (double)BigHR_rows / BigLR_rows;
-	int blockRowIdx, blockColIdx, crossBlockColIdx, crossBlockRowIdx;
-
-	dataChunks.resize(int(BigHR_rows / blockHeight) + 1);
-	dataChunks.resize(int(BigHR_cols / blockWidth) + 1);
-
-	for (int k = 0; k < LR_imgCount; k++) for (int i = 0; i < BigLR_rows; i++) for(int j = 0; j < BigLR_cols; j++)
-	{
-		Vec2f& tmp_flow = flows[k].at<Vec2f>(i,j);
-		LR_Pixel* cur_LR_pix = &(LR_pixels.access(k, i, j));
-
-		pos_x = (j + tmp_flow[0] + 0.5) * scale;
-		pos_y = (i + tmp_flow[1] + 0.5 ) * scale;
-
-		cur_LR_pix->val = (double)imgs[k].at<uchar>(i,j);
-		cur_LR_pix->pos_x = pos_x;
-		cur_LR_pix->pos_y = pos_y;
-		cur_LR_pix->confidence = confs[k].at<double>(i, j);
-
-		blockColIdx = (int)pos_x / blockWidth;
-		blockRowIdx = (int)pos_y / blockHeight;
-		dataChunks[blockRowIdx][blockColIdx].data_LR_pix.push_back(cur_LR_pix);
-		// for right and down block
-		crossBlockColIdx = (int)(pos_x+overlappingPix) / blockWidth;
-		crossBlockRowIdx = (int)(pos_y+overlappingPix) / blockHeight;
-		if (crossBlockColIdx != blockColIdx) {
-			dataChunks[blockRowIdx][crossBlockColIdx].data_LR_pix.push_back(cur_LR_pix);
-		}
-		if (crossBlockRowIdx != blockRowIdx) {
-			dataChunks[crossBlockRowIdx][blockColIdx].data_LR_pix.push_back(cur_LR_pix);
-		}
-		if (crossBlockColIdx != blockColIdx && crossBlockRowIdx != blockRowIdx) {
-			dataChunks[crossBlockRowIdx][crossBlockColIdx].data_LR_pix.push_back(cur_LR_pix);
-		}
-		// for left and up block
-		crossBlockColIdx = (int)(pos_x-overlappingPix) / blockWidth;
-		crossBlockRowIdx = (int)(pos_y-overlappingPix) / blockHeight;
-		if (crossBlockColIdx != blockColIdx) {
-			dataChunks[blockRowIdx][crossBlockColIdx].data_LR_pix.push_back(cur_LR_pix);
-		}
-		if (crossBlockRowIdx != blockRowIdx) {
-			dataChunks[crossBlockRowIdx][blockColIdx].data_LR_pix.push_back(cur_LR_pix);
-		}
-		if (crossBlockColIdx != blockColIdx && crossBlockRowIdx != blockRowIdx) {
-			dataChunks[crossBlockRowIdx][crossBlockColIdx].data_LR_pix.push_back(cur_LR_pix);
-		}
-	}
-
-	for (int i = 0; i < BigHR_rows; i++) for (int j = 0; j < BigHR_cols; j++)
-	{
-		HR_Pixel* cur_HR_pix = &(HR_pixels.access(i, j));
-
-
-
-		pos_x = j;
-		pos_y = i;
-
-		blockColIdx = (int)pos_x / blockWidth;
-		blockRowIdx = (int)pos_y / blockHeight;
-		dataChunks[blockRowIdx][blockColIdx].data_HR_pix.push_back(cur_HR_pix);
-		// for right and down block
-		crossBlockColIdx = (int)(pos_x+overlappingPix) / blockWidth;
-		crossBlockRowIdx = (int)(pos_y+overlappingPix) / blockHeight;
-		if (crossBlockColIdx != blockColIdx) {
-			dataChunks[blockRowIdx][crossBlockColIdx].data_HR_pix.push_back(cur_HR_pix);
-		}
-		if (crossBlockRowIdx != blockRowIdx) {
-			dataChunks[crossBlockRowIdx][blockColIdx].data_HR_pix.push_back(cur_HR_pix);
-		}
-		if (crossBlockColIdx != blockColIdx && crossBlockRowIdx != blockRowIdx) {
-			dataChunks[crossBlockRowIdx][crossBlockColIdx].data_HR_pix.push_back(cur_HR_pix);
-		}
-		// for left and up block
-		crossBlockColIdx = (int)(pos_x-overlappingPix) / blockWidth;
-		crossBlockRowIdx = (int)(pos_y-overlappingPix) / blockHeight;
-		if (crossBlockColIdx != blockColIdx) {
-			dataChunks[blockRowIdx][crossBlockColIdx].data_HR_pix.push_back(cur_HR_pix);
-		}
-		if (crossBlockRowIdx != blockRowIdx) {
-			dataChunks[crossBlockRowIdx][blockColIdx].data_HR_pix.push_back(cur_HR_pix);
-		}
-		if (crossBlockColIdx != blockColIdx && crossBlockRowIdx != blockRowIdx) {
-			dataChunks[crossBlockRowIdx][crossBlockColIdx].data_HR_pix.push_back(cur_HR_pix);
-		}
-	}
-
-
-	/*
-	// parameters
-	BigLR_rows = LR_pixels.LR_rows;
-	BigLR_cols = LR_pixels.LR_cols;
-	BigHR_rows = HR_pixels.HR_rows;
-	BigHR_cols = HR_pixels.HR_cols;
-	LR_imgCount = LR_pixels.LR_imgCount;
-
-	overlappingPix = (HR_pixels.HR_rows / LR_pixels.LR_rows) + 1;
-	
-	longSide = (BigHR_rows > BigHR_cols) ? BigHR_rows : BigHR_cols;
-	totalBlocksCount = pow(4, floor(log(longSide/200.f)/log(2.0f))); // origin: ceil
-
-	blockPerAxis = sqrt(totalBlocksCount);
-	blockWidth = double(BigHR_cols)/blockPerAxis;
-	blockHeight = double(BigHR_rows)/blockPerAxis;
-
-	int blockCount = 0;
-
-	for (int i = 0; i < BigHR_rows; i += blockHeight) for (int j = 0; j < BigHR_cols; j += blockWidth)
-	{
-		blockCount++;
-	}
-	dataChunks.resize(blockCount);
-
-	int blockIdx = 0;
-	for (int i = 0; i < BigHR_rows; i += blockHeight) for (int j = 0; j < BigHR_cols; j += blockWidth)
-	{
-		int leftBorder, rightBorder, upBorder, downBorder;
-		int rectWidth, rectHeight;
-		//
-		if (i - overlappingPix >= 0) {
-			leftBorder = i - overlappingPix;
-		}
-		else {
-			leftBorder = 0;
-		}
-		//
-		if (i + overlappingPix < BigHR_rows) {
-			rightBorder = i + overlappingPix;
-		}
-		else {
-			rightBorder = BigHR_rows;
-		}
-		//
-		if (j - overlappingPix >= 0) {
-			upBorder = j - overlappingPix;
-		}
-		else {
-			upBorder = BigHR_cols;
-		}
-		//
-		if (j + overlappingPix < BigHR_cols) {
-			downBorder = j + overlappingPix;
-		}
-		else {
-			downBorder = BigHR_cols;
-		}
-
-		//
-		if (i + blockHeight > BigHR_rows) {
-			rectHeight = BigHR_rows - i;
-		}
-		else{
-			rectHeight = blockHeight;
-		}
-		//
-		if (i + blockWidth > BigHR_cols) {
-			rectWidth = BigHR_cols - j;
-		}
-		else{
-			rectWidth = blockWidth;
-		}
-
-		//
-		dataChunks[blockIdx].inBigHR = Rect(j, i, rectWidth, rectHeight);
-		dataChunks[blockIdx].inSmallHR = Rect(j - leftBorder, i - upBorder, rectWidth, rectHeight);
-
-		// initial LR_pixel record
-		for (int k = 0; k < LR_imgCount; k++) for(int lr_i = 0; lr_i < BigLR_rows; lr_i++) for(int lr_j = 0; lr_j < BigLR_cols; lr_j++)
-		{
-			LR_pixels.access(k, lr_i, lr_j).picked = false;
-		}
-		// pick LR_pixel
-		for (int hr_i = upBorder; hr_i < downBorder; hr_i++) for (int hr_j = leftBorder; hr_j < rightBorder; hr_j++)
-		{
-			for (int idx = 0; idx < HR_pixels.access(hr_i, hr_j).influence_link_cnt; idx++ ) {
-				LR_Pixel* cur_LR_pix = relations.influence_links[HR_pixels.access(hr_i, hr_j).influence_link_start + idx].pixel;
-				if (!cur_LR_pix->picked) {
-					dataChunks[blockIdx].data_LR_pix.push_back(cur_LR_pix);
-
-					cur_LR_pix->picked = true;
-				}
-			}
-			
-		}
-	}
-
-	//*/
+	influence_links.clear();
+	perception_links.clear();
 }
-
+//*/
 //-----
 MySparseMat::MySparseMat()
 {

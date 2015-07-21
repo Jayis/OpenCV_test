@@ -660,7 +660,7 @@ void resampleByMatrix (Mat& X,
 			}
 	}
 }
-*/
+
 void formSparseI (EigenSpMat& out, int rows, int cols) {
 	out = EigenSpMat(rows, cols);
 
@@ -719,7 +719,7 @@ double MySpMat_dot (vector<Element>& a, vector<Element>& b) {
 
 	return out;
 }
-
+//*/
 void DivideToBlocksToConstruct(vector<Mat>& BigLRimgs, vector<Mat>& BigFlows, vector<Mat>& BigConfs, Mat& PSF, double scale, Mat& BigHRimg)
 {
 	int overlappingPix = 5;

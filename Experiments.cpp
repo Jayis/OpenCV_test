@@ -422,7 +422,7 @@ void flow2H_test () {
 }
 
 void LinearConstruct_test () {
-	String test_set = "res256";	
+	String test_set = "bb2Crop2000";	
 	int n = 4;
 
 	vector<Mat> imgsC1;
@@ -481,7 +481,7 @@ void LinearConstruct_test () {
 	for (int k = 0; k < n; k++) {
 		imgsC1[k] = imread("input/" + test_set + "_0" + int2str(k+1) + ".bmp", CV_LOAD_IMAGE_GRAYSCALE);
 		imgsC3[k] = imread("input/" + test_set + "_0" + int2str(k+1) + ".bmp", CV_LOAD_IMAGE_COLOR);
-		GaussianBlur( imgsC1[k], blurImg[k], Size( floor(sigma*2 + 9), floor(sigma*2 + 9)), sigma, sigma );
+		//GaussianBlur( imgsC1[k], blurImg[k], Size( floor(sigma*2 + 9), floor(sigma*2 + 9)), sigma, sigma );
 
 		//specialBlur(imgsC1[k], preProsImgs[k]);
 		/*
@@ -496,8 +496,9 @@ void LinearConstruct_test () {
 
 	cout << "calculating flows & confidences\n";
 	//Ptr<DenseOpticalFlow> OptFlow = createOptFlow_DualTVL1();
-	Mod_OpticalFlowDual_TVL1* OptFlow = new Mod_OpticalFlowDual_TVL1;
+	//Mod_OpticalFlowDual_TVL1* OptFlow = new Mod_OpticalFlowDual_TVL1;
 	//OptFlow->setBool("useInitialFlow", true);
+	SymmConfOptFlow_calc* symmOptFlow = new SymmConfOptFlow_calc;
 	time_t time1, time0;
 
 	for (int k = 0; k < n; k++) {
@@ -534,8 +535,8 @@ void LinearConstruct_test () {
 		showConfidence (blur_flows[k], blur_flows_back[k], blur_confs[k]);
 		/**/
 		
-		SymmConfOptFlow_calc symmOptFlow;
-		symmOptFlow.calc_tv1(imgsC1[k], imgsC1[0], symm_flows[k], symm_flows_back[k], symm_confs[k]);
+		
+		symmOptFlow->calc_tv1(imgsC1[k], imgsC1[0], symm_flows[k], symm_flows_back[k], symm_confs[k]);
 		/**/
 
 		/*
@@ -614,7 +615,7 @@ void LinearConstruct_test () {
 		combineFlows[k] = flows[k];
 		/**/
 
-		symm_confs[k] = 1;
+		//symm_confs[k] = 1;
 
 		combineConfs[k] = symm_confs[k];
 		combineFlows[k] = symm_flows[k];
@@ -626,35 +627,40 @@ void LinearConstruct_test () {
 		
 	// start reconstruct
 	// release 
-	delete OptFlow;
+	//delete OptFlow;
+	delete symmOptFlow;
 
 	double scale = 2;
 	Mat dot = Mat::zeros(5,5,CV_64F);
 	dot.at<double>(2, 2) = 1; 
 
 	double PSF_sigma = 0.7 * SQR(scale/2);
-	Mat PSF = Mat::zeros(5,5,CV_64F);
-	GaussianBlur(dot, PSF, Size( 5, 5), PSF_sigma, PSF_sigma, BORDER_REPLICATE);
+	int PSF_size =  5 * scale / 2;
+	Mat PSF = Mat::zeros(PSF_size,PSF_size,CV_64F);
+	GaussianBlur(dot, PSF, Size( PSF_size, PSF_size), PSF_sigma, PSF_sigma, BORDER_REPLICATE);
 
 	Mat BPk = PSF;
 	
 	Mat HRimg, HRimgC3;
 	
-	//DivideToBlocksToConstruct( imgsC1, combineFlows, symm_confs, PSF, scale, HRimg);
+	//Block_Constructor divided2Blocks( imgsC1, combineFlows, combineConfs, scale, PSF);
+	//divided2Blocks.output(HRimg);
+
+	DivideToBlocksToConstruct( imgsC1, combineFlows, combineConfs, PSF, scale, HRimg);
 	//DivideToBlocksToConstruct( imgsC1, flows, confs, PSF, scale, HRimg);
-	
+	/*
 	TermCriteria BPstop;
-	BPstop.type = TermCriteria::COUNT + TermCriteria::EPS/**/;
+	BPstop.type = TermCriteria::COUNT + TermCriteria::EPS;
 	BPstop.maxCount = 500;
 	BPstop.epsilon = 1;
-
-	BP_Constructor BPconstructor(HRimg, scale, imgsC1, combineFlows, PSF, BPk, BPstop, combineConfs);
+	//*/
+	//BP_Constructor BPconstructor(HRimg, scale, imgsC1, combineFlows, PSF, BPk, BPstop, combineConfs);
 
 	//BackProjection(HRimg, scale, imgsC1, combineFlows, PSF, BPk, BPstop);
 	//BackProjection_Confidence(HRimg, scale, imgsC1, combineFlows, PSF, BPk, BPstop, combineConfs);
-	imwrite("output/" + test_set + "_BPC1_wConf.bmp", HRimg);
+	imwrite("output/" + test_set + "_BlockReconstructC1_wConf.bmp", HRimg);
 	outputHRcolor(HRimg, imgsC3[0], HRimgC3);
-	imwrite("output/" + test_set + "_BPC3_wConf.bmp", HRimgC3);
+	imwrite("output/" + test_set + "_BlockReconstructC3_wConf.bmp", HRimgC3);
 	//*/
 	/*
 	LinearConstructor linearConstructor( imgsC1, combineFlows, combineConfs, 2, PSF);

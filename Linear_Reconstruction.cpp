@@ -34,11 +34,17 @@ Linear_Constructor::Linear_Constructor( vector<Mat>& LR_imgs, vector<Mat>& flows
 Linear_Constructor::Linear_Constructor( DataChunk& dataChunk ) {
 	cout << "----- Linear-Constructor (Block) -----\n";
 
-	HR_rows = dataChunk.inBigHR.height;
-	HR_cols = dataChunk.inBigHR.width;
+	HR_rows = dataChunk.SmallHR_rows;
+	HR_cols = dataChunk.SmallHR_cols;
+	LR_pixelCount = dataChunk.data_LR_pix.size();
+	HR_pixelCount = HR_rows * HR_cols;
+
+	relations = dataChunk.tmp_relations;
+	HR_pixels = dataChunk.tmp_HR_pixels;
+	LR_pixels = new LR_Pixel_Array(1,1,1);
 
 	curRow = 0;
-
+	addDataFidelityWithConf(dataChunk);
 
 	cout << "----- Linear-Constructor ----- CONSTRUCT COMPLETE\n";
 }
@@ -79,8 +85,6 @@ void Linear_Constructor::constructor( vector<Mat>& LR_imgs, vector<Mat>& flows, 
 							super_BPk,
 							interp_scale,
 							confs);
-
-	divided2Blocks = new Divided2Blocks(*LR_pixels, *HR_pixels, *relations);
 }
 
 void Linear_Constructor::addDataFidelity( ) {
@@ -175,30 +179,6 @@ void Linear_Constructor::addDataFidelityWithConf(DataChunk& dataChunk ) {
 		curRow++;
 
 	}
-
-	for (int k = 0; k < LR_imgCount; k++) {
-
-		for (int ii = 0; ii < LR_rows; ii++) for (int jj = 0; jj < LR_cols; jj++) {
-			LR_Pixel& cur_LR_pix = LR_pixels->access(k, ii, jj);
-			//curConf = conf[k].at<double>(ii, jj);
-			curConf = cur_LR_pix.confidence;
-
-			// A
-			for (int p = 0; p < cur_LR_pix.perception_link_cnt; p++) {
-				Perception_Pixel& cur_perception_pix = relations->perception_links[cur_LR_pix.perception_link_start + p];
-				sourcePos2ColIdx = cur_perception_pix.pixel -> i * HR_cols + cur_perception_pix.pixel -> j;
-
-				A_triplets.push_back( T(curRow, sourcePos2ColIdx, curConf * cur_perception_pix.hPSF) );	
-			}
-			// b
-			b_vec.push_back( curConf * cur_LR_pix.val );
-
-			// iteration update
-			curRow++;
-		}
-
-	}
-
 }
 
 void Linear_Constructor::addRegularization_grad2norm(double gamma) {
@@ -290,14 +270,6 @@ void Linear_Constructor::solve_byCG() {
 	ConjugateGradient<EigenSpMat> CG_sover(ATA);
 	cout << "solving...\n";
 	x = CG_sover.solve(ATb);
-}
-
-void Linear_Constructor::solve_BlockByBlock() {
-	for (int idx = 0; idx < divided2Blocks->dataChunks.size(); idx++) {
-		curRow = 0;
-		addDataFidelityWithConf(divided2Blocks->dataChunks[idx]);
-
-	}
 }
 
 void Linear_Constructor::output(Mat& HRimg) {

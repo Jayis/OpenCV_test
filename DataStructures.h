@@ -5,6 +5,7 @@
 #include <vector>
 #include <iostream>
 
+//#include "Linear_Reconstruction.h"
 #include "Macros.h"
 
 using namespace std;
@@ -20,6 +21,7 @@ public:
 
 class Influenced_Pixel;
 class Perception_Pixel;
+class DataChunk;
 
 class HR_Pixel : public Pixel {
 public:
@@ -100,30 +102,29 @@ private:
 class InfluenceRelation {
 public:
 	InfluenceRelation(vector<Mat>& imgs,
-							vector<Mat>& flows,
-							LR_Pixel_Array* LR_pixels,
-							HR_Pixel_Array*  HR_pixels,
-							double scale,
-							Mat& super_PSF,
-							Mat& super_BPk,
-							double interp_scale, 
-							vector<Mat>& confs);
-	InfluenceRelation(vector<Mat>& imgs,
-							vector<Mat>& flows,
-							LR_Pixel_Array* LR_pixels,
-							HR_Pixel_Array*  HR_pixels,
-							double scale,
-							Mat& super_PSF,
-							Mat& super_BPk,
-							double interp_scale);
-
+		vector<Mat>& flows,
+		LR_Pixel_Array* LR_pixels,
+		HR_Pixel_Array*  HR_pixels,
+		double scale,
+		Mat& super_PSF,
+		Mat& super_BPk,
+		double interp_scale, 
+		vector<Mat>& confs);
 	InfluenceRelation(vector<Mat>& imgs,
 		vector<Mat>& flows,
-		DataChunk& dataChunk,
+		LR_Pixel_Array* LR_pixels,
+		HR_Pixel_Array*  HR_pixels,
 		double scale,
 		Mat& super_PSF,
 		Mat& super_BPk,
 		double interp_scale);
+	InfluenceRelation(
+		DataChunk& dataChunk,
+		Mat& super_PSF,
+		Mat& super_BPk,
+		double interp_scale);
+
+	//~InfluenceRelation();
 
 	vector<Influenced_Pixel> influence_links;
 	vector<Perception_Pixel> perception_links;
@@ -145,32 +146,16 @@ class DataChunk
 public:
 	Mat smallHR;
 	Rect inBigHR, inSmallHR;
-	vector<HR_Pixel*> data_HR_pix;
+	//vector<HR_Pixel*> data_HR_pix;
 	vector<LR_Pixel*> data_LR_pix;
 
-	HR_Pixel_Array*  HR_pixels;
-	LR_Pixel_Array* LR_pixels;
-};
+	HR_Pixel_Array*  tmp_HR_pixels;
+	//LR_Pixel_Array* LR_pixels;
 
-class Divided2Blocks
-{
-public:
-	Divided2Blocks(vector<Mat>& imgs,
-		vector<Mat>& confs,
-		LR_Pixel_Array& LR_pixels,
-		HR_Pixel_Array&  HR_pixels,
-		vector<Mat>& flows);
+	int leftBorder, rightBorder, upBorder, downBorder;
+	int SmallHR_rows, SmallHR_cols;
 
-	vector< vector< DataChunk > > dataChunks;
-
-private:
-	int overlappingPix;
-	int BigLR_rows, BigLR_cols, BigHR_rows, BigHR_cols;
-	int LR_imgCount;
-	int longSide, totalBlocksCount;
-	double blockPerAxis, blockWidth, blockHeight;
-
-
+	InfluenceRelation* tmp_relations;
 };
 
 //-----SparseMat

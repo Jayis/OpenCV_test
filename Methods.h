@@ -15,6 +15,7 @@ using namespace cv;
 using namespace std;
 
 // BP
+/*
 void formInfluenceRelation (vector<Mat>& imgs,
 							vector<Mat>& flows,
 							LR_Pixel_Array* LR_pixels,
@@ -23,6 +24,7 @@ void formInfluenceRelation (vector<Mat>& imgs,
 							Mat& super_PSF,
 							Mat& super_BPk,
 							double interp_scale);
+//*/
 
 void HR_to_LR ( Mat& HRimg, Mat& LRimg, double scale, Mat& PSF, bool super_PSF, double PSF_scale=0 );
 
@@ -45,6 +47,7 @@ void ImgPreProcess (vector<Mat>& LR_imgs, vector<Mat>& output);
 
 void getBetterFlow (vector<Mat>& oriConfs, vector<Mat>& OriFlow, vector<Mat>& newConfs, vector<Mat>& newFlows, vector<Mat>& combinedConfs, vector<Mat>& combinedFlows);
 // FlexISP
+/*
 void formResampleMatrix (vector < vector < vector <LR_Pixel> > >& LR_pixels,
 							  vector < vector <HR_Pixel> >&  HR_pixels,
 							  vector <MySparseMat>& S,
@@ -63,10 +66,10 @@ void formSparseI (EigenSpMat& out, int rows, int cols);
 void multiplyMySpMat (MySparseMat& A, MySparseMat& B, EigenSpMat& out);
 
 double MySpMat_dot (vector<Element>& a, vector<Element>& b);
-
+//*/
 void DivideToBlocksToConstruct(vector<Mat>& BigLRimgs, vector<Mat>& BigFlows, vector<Mat>& BigConfs, Mat& PSF, double scale, Mat& BigHRimg);
 // 
-void weightedNeighborWarp (vector<vector<HR_Pixel> >& HR_pixels, Mat& HRimg);
+//void weightedNeighborWarp (vector<vector<HR_Pixel> >& HR_pixels, Mat& HRimg);
 
 void warpImageByFlow (Mat& colorImg, Mat& flow, Mat& output);
 

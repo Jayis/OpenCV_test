@@ -48,6 +48,4 @@ private:
 	HR_Pixel_Array* HR_pixels;
 	LR_Pixel_Array* LR_pixels;
 	InfluenceRelation* relations;
-
-	Divided2Blocks* divided2Blocks;
 };
