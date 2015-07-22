@@ -115,7 +115,7 @@ void symmetricOptFlow_test() {
 	/*
 	LinearConstructor linearConstructor( imgsC1, combineFlows, combineConfs, 2, PSF);
 	linearConstructor.addRegularization_grad2norm(0.05);
-	linearConstructor.solve_byCG();
+	linearConstructor.solve_by_CG();
 	linearConstructor.output(HRimg);
 	/**/
 	
@@ -423,7 +423,7 @@ void flow2H_test () {
 
 void LinearConstruct_test () {
 	String test_set = "bb2Crop2000";	
-	int n = 4;
+	int n = 1;
 
 	vector<Mat> imgsC1;
 	vector<Mat> imgsC3;
@@ -643,10 +643,10 @@ void LinearConstruct_test () {
 	
 	Mat HRimg, HRimgC3;
 	
-	//Block_Constructor divided2Blocks( imgsC1, combineFlows, combineConfs, scale, PSF);
-	//divided2Blocks.output(HRimg);
+	Block_Constructor divided2Blocks( imgsC1, combineFlows, combineConfs, scale, PSF);
+	divided2Blocks.output(HRimg);
 
-	DivideToBlocksToConstruct( imgsC1, combineFlows, combineConfs, PSF, scale, HRimg);
+	//DivideToBlocksToConstruct( imgsC1, combineFlows, combineConfs, PSF, scale, HRimg);
 	//DivideToBlocksToConstruct( imgsC1, flows, confs, PSF, scale, HRimg);
 	/*
 	TermCriteria BPstop;
@@ -665,7 +665,7 @@ void LinearConstruct_test () {
 	/*
 	LinearConstructor linearConstructor( imgsC1, combineFlows, combineConfs, 2, PSF);
 	linearConstructor.addRegularization_grad2norm(0.05);
-	linearConstructor.solve_byCG();
+	linearConstructor.solve_by_CG();
 	linearConstructor.output(HRimg);
 	/**/
 	/*

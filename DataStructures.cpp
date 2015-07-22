@@ -27,7 +27,9 @@ HR_Pixel_Array::HR_Pixel_Array(int r, int c)
 	HR_cols = c;
 	HR_pixelCount = r * c;
 
-	for (int i = 0; i < r; i++) for (int j = 0; j < c; j++) {
+	int i, j;
+
+	for (i = 0; i < r; i++) for (j = 0; j < c; j++) {
 		hr_pixels[i * HR_cols + j].i = i;
 		hr_pixels[i * HR_cols + j].j = j;
 	}
@@ -65,7 +67,9 @@ LR_Pixel_Array::LR_Pixel_Array(int n, int r, int c)
 	LR_cols = c;
 	LR_pixelCount = r * c;
 
-	for (int k = 0; k < n; k++) for (int i = 0; i < r; i++) for (int j = 0; j < c; j++) {
+	int k, i, j;
+
+	for (k = 0; k < n; k++) for (i = 0; i < r; i++) for (j = 0; j < c; j++) {
 		lr_pixels[k * LR_pixelCount + i * LR_cols + j].k = k;
 		lr_pixels[k * LR_pixelCount + i * LR_cols + j].i = i;
 		lr_pixels[k * LR_pixelCount + i * LR_cols + j].j = j;
@@ -355,8 +359,8 @@ InfluenceRelation::InfluenceRelation(//vector<Mat>& imgs,
 		// for each pixel
 	for (int lr_idx = 0; lr_idx < dataChunk.data_LR_pix.size(); lr_idx++)
 	{
-		pos_x = dataChunk.data_LR_pix[lr_idx]->pos_x;
-		pos_y = dataChunk.data_LR_pix[lr_idx]->pos_y;
+		pos_x = dataChunk.data_LR_pix[lr_idx].pos_x;
+		pos_y = dataChunk.data_LR_pix[lr_idx].pos_y;
 		
 		// add to those buckets within radius
 		// for each possible bucket
@@ -388,10 +392,10 @@ InfluenceRelation::InfluenceRelation(//vector<Mat>& imgs,
 	perception_links.reserve(link_count);
 	for (int lr_idx = 0; lr_idx < dataChunk.data_LR_pix.size(); lr_idx++)
 	{
-		LR_Pixel* cur_LR_pix = dataChunk.data_LR_pix[lr_idx];
+		LR_Pixel& cur_LR_pix = dataChunk.data_LR_pix[lr_idx];
 
-		pos_x = cur_LR_pix->pos_x;
-		pos_y = cur_LR_pix->pos_y;
+		pos_x = cur_LR_pix.pos_x;
+		pos_y = cur_LR_pix.pos_y;
 		
 		// add to those buckets within radius
 		// for each possible bucket
@@ -415,7 +419,7 @@ InfluenceRelation::InfluenceRelation(//vector<Mat>& imgs,
 
 				// create a influence relation
 				Influenced_Pixel tmp_pix;
-				tmp_pix.pixel = cur_LR_pix;
+				tmp_pix.pixel = &cur_LR_pix;
 				//----- hbp
 				offset_x = (dx) + BPk_radius_x + 0.5;
 				offset_y = (dy) + BPk_radius_y + 0.5;
@@ -426,6 +430,13 @@ InfluenceRelation::InfluenceRelation(//vector<Mat>& imgs,
 				super_offset_y = offset_y * interp_scale;
 				tmp_pix.hBP = super_BPk.at<double>(super_offset_x, super_offset_y);
 				// add to bucket
+				if (bucket_idx_i - dataChunk.upBorder < 0 || bucket_idx_j - dataChunk.leftBorder < 0){
+					cout << "qq";
+				}
+				if (bucket_idx_i - dataChunk.downBorder >= 0 || bucket_idx_j - dataChunk.rightBorder >= 0){					
+					cout << bucket_idx_i << ", " << bucket_idx_j << endl;
+					cout << "gg";
+				}
 				dataChunk.tmp_HR_pixels->access( bucket_idx_i - dataChunk.upBorder, bucket_idx_j - dataChunk.leftBorder).hBP_sum += tmp_pix.hBP;
 				// we now save all influenced_pixels to influence_links
 				//HR_pixels->access( bucket_idx_i, bucket_idx_j).influenced_pixels.push_back( tmp_pix );
@@ -471,18 +482,18 @@ InfluenceRelation::InfluenceRelation(//vector<Mat>& imgs,
 	}
 
 	for (int idx = 0; idx < dataChunk.data_LR_pix.size(); idx++) {
-		dataChunk.data_LR_pix[idx]->perception_link_cnt = 0;
+		dataChunk.data_LR_pix[idx].perception_link_cnt = 0;
 	}
 	// perception_links assign to lr_pixels
 	int cur_lr_idx = -1;
 	for (int idx = 0; idx < perception_links.size(); idx++) {
 		if (cur_lr_idx != perception_links[idx].lr_idx) {
 			cur_lr_idx = perception_links[idx].lr_idx;
-			dataChunk.data_LR_pix[cur_lr_idx]->perception_link_start = idx;
-			dataChunk.data_LR_pix[cur_lr_idx]->perception_link_cnt++;
+			dataChunk.data_LR_pix[cur_lr_idx].perception_link_start = idx;
+			dataChunk.data_LR_pix[cur_lr_idx].perception_link_cnt++;
 		}
 		else {
-			dataChunk.data_LR_pix[cur_lr_idx]->perception_link_cnt++;
+			dataChunk.data_LR_pix[cur_lr_idx].perception_link_cnt++;
 		}
 	}
 }

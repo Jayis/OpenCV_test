@@ -45,9 +45,6 @@ public:
 
 	int perception_link_start;
 	int perception_link_cnt;
-
-	// for Divided2Block use
-	bool picked;
 };
 
 class Influenced_Pixel {
@@ -146,8 +143,7 @@ class DataChunk
 public:
 	Mat smallHR;
 	Rect inBigHR, inSmallHR;
-	//vector<HR_Pixel*> data_HR_pix;
-	vector<LR_Pixel*> data_LR_pix;
+	vector<LR_Pixel> data_LR_pix;
 
 	HR_Pixel_Array*  tmp_HR_pixels;
 	//LR_Pixel_Array* LR_pixels;
@@ -157,6 +153,17 @@ public:
 
 	InfluenceRelation* tmp_relations;
 };
+/*
+class Constructor
+{
+public:
+	void constructor();
+
+	int LR_imgCount, LR_rows, LR_cols, LR_pixelCount;
+	int HR_rows, HR_cols, HR_pixelCount;
+	double up_scale, interp_scale;
+};
+//*/
 
 //-----SparseMat
 class Element {

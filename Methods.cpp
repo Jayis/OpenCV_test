@@ -790,7 +790,7 @@ void DivideToBlocksToConstruct(vector<Mat>& BigLRimgs, vector<Mat>& BigFlows, ve
 			// ----- CONSTRUCTION -----
 			Linear_Constructor linearConstructor( imagesBlock, flowsBlock, confsBlock, scale, PSF);
 			linearConstructor.addRegularization_grad2norm(0.05);
-			linearConstructor.solve_byCG();
+			linearConstructor.solve_by_CG();
 			linearConstructor.output(SmallHRimg);
 
 			cout << "block construct complete\n";

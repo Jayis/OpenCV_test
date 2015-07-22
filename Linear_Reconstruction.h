@@ -20,25 +20,25 @@ public:
 	
 	void addRegularization_grad2norm(double gamma);
 
-	void solve_bySparseQR();	// error
-	void solve_byCG();
-
-	void solve_BlockByBlock();
+	void solve_by_CG();
+	void solve_by_GradientDescent();
 
 	void output(Mat& HRimg);
+
+	bool needRelease;
 
 private:
 	void constructor( vector<Mat>& LR_imgs, vector<Mat>& flows, vector<Mat> confs, double scale, Mat& PSF);
 
-	void addDataFidelity( );
-	void addDataFidelityWithConf(vector<Mat>& conf );
+	void addDataFidelityWithConf(vector<Mat>& conf);
 	void addDataFidelityWithConf(DataChunk& dataChunk);
 
-	vector<T> A_triplets;
+	vector<T> A_triplets, C_triplets;
 	vector<double> b_vec;
-	int curRow;
-	VectorXd ATb, b, x;
+	int rowCnt_A, rowCnt_C;
+	VectorXd ATb, b, x, x_n, x_n1;
 	EigenSpMat A, ATA;
+	EigenSpMat C, CTC;
 
 	int LR_imgCount;
 	int LR_rows, LR_cols, HR_rows, HR_cols;
