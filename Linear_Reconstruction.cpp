@@ -271,19 +271,20 @@ void Linear_Constructor::solve_by_GradientDescent()
 	cout << "forming CT...\n";
 	EigenSpMat CT = C.transpose();
 
-	cout << "multiplying ATA..." << endl;
-	ATA = (AT * A).pruned(100, EX_small);
-
-	cout << "multiplying CTC..." << endl;
-	CTC = (CT * C).pruned(100, EX_small);
+	//cout << "multiplying ATA..." << endl;
+	//ATA = (AT * A).pruned(100, EX_small);
+	
+	//cout << "multiplying CTC..." << endl;
+	//CTC = (CT * C).pruned(100, EX_small);
 
 	cout << "multiplying ATb...\n";
 	ATb = AT * b;
 
 	double err = EX_big;
 	// 0.0001
-	while (err > 0.001) {
-		x_n1 = x_n + 0.5*(ATb - ATA * x_n - CTC * x_n);
+	while (err > 0.0001) {
+		x_n1 = x_n + 0.5 * ( ATb - (AT * (A * x_n)) - (CT * (C * x_n)) ); // 27 sec
+		//x_n1 = x_n + 0.5 * ( ATb - (ATA * x_n) - (CTC * x_n) ); // 33 sec
 
 		err = (x_n1 - x_n).norm() / HR_pixelCount;
 		//cout << "err: " << err << endl;

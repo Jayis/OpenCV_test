@@ -422,8 +422,8 @@ void flow2H_test () {
 }
 
 void LinearConstruct_test () {
-	String test_set = "bb2Crop2000";	
-	int n = 1;
+	String test_set = "bill256";	
+	int n = 4;
 
 	vector<Mat> imgsC1;
 	vector<Mat> imgsC3;
