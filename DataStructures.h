@@ -150,6 +150,7 @@ public:
 
 	int leftBorder, rightBorder, upBorder, downBorder;
 	int SmallHR_rows, SmallHR_cols;
+	int blockRowIdx, blockColIdx;
 
 	InfluenceRelation* tmp_relations;
 };

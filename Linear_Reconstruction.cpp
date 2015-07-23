@@ -234,7 +234,53 @@ void Linear_Constructor::solve_by_CG() {
 	x = CG_sover.solve(ATb);
 }
 
-void Linear_Constructor::solve_by_GradientDescent()
+void Linear_Constructor::solve_by_CG_GPU() {
+	
+	int i;
+
+	cout << "solve by CG\n";
+
+	cout << "HR_pixelCount: "<< HR_pixelCount << endl;
+	A = EigenSpMat( rowCnt_A + rowCnt_C, HR_pixelCount );
+	b = VectorXd( rowCnt_A + rowCnt_C );
+	x = VectorXd( HR_pixelCount );
+
+	cout << "forming A ...\n";
+	for (i = 0; i < C_triplets.size(); i++) {
+		A_triplets.push_back(T(C_triplets[i].row() + rowCnt_A, C_triplets[i].col(), C_triplets[i].value()));
+	}
+	A.setFromTriplets( A_triplets.begin(), A_triplets.end() );
+	cout << "A.size(): " << A.rows() << ", " << A.cols() << endl;
+	//A.makeCompressed();
+
+	cout << "forming b ...\n";
+
+	for (i = 0; i < rowCnt_A; i++) {
+		b(i) = b_vec[i];
+	}
+	for (; i < rowCnt_A + rowCnt_C; i++) {
+		b(i) = 0;
+	}
+
+	
+	cout << "forming AT...\n";
+	EigenSpMat AT = A.transpose();
+	//AT.makeCompressed();
+	
+	cout << "multiplying ATA..." << endl;
+	ATA = (AT * A).pruned(100, EX_small);
+	cout << "ATA.size(): " << ATA.rows() << ", " << ATA.cols() << endl;
+
+	//ATA.makeCompressed();
+	cout << "multiplying ATb...\n";
+	ATb = AT * b;
+
+	cout << "call GPU solver\n";
+	cout << "solving...\n";
+	ConjugateGradient_GPU(ATA, ATb, x);
+}
+
+void Linear_Constructor::solve_by_L2GradientDescent()
 {
 	int i;
 
@@ -274,20 +320,132 @@ void Linear_Constructor::solve_by_GradientDescent()
 	//cout << "multiplying ATA..." << endl;
 	//ATA = (AT * A).pruned(100, EX_small);
 	
-	//cout << "multiplying CTC..." << endl;
-	//CTC = (CT * C).pruned(100, EX_small);
+	cout << "multiplying CTC..." << endl;
+	CTC = (CT * C).pruned(100, EX_small);
+
+	//cout << "multiplying ATb...\n";
+	//ATb = AT * b;
+
+	double err = EX_big;
+	// 0.0001
+	while (err > 0.0001) {
+		// by_CG -> 36 sec
+		//x_n1 = x_n + 0.5 * ( ATb - (AT * (A * x_n)) - (CT * (C * x_n)) ); // 27 sec
+		//x_n1 = x_n + 0.5 * ( ATb - (ATA * x_n) - (CTC * x_n) ); // 33 sec
+		x_n1 = x_n + 0.5 * ( AT * (b - (A * x_n)) - (CTC * x_n) ); // 26 sec
+		//x_n1 = x_n + 0.5 * ( AT * (b - (A * x_n)) - (CT * (C * x_n)) ); // 28 sec
+
+		err = (x_n1 - x_n).norm() / HR_pixelCount;
+		//cout << "err: " << err << endl;
+
+		x_n = x_n1;
+	}
+
+	x = x_n1;
+}
+
+void Linear_Constructor::solve_by_L2GradientDescent_GPU()
+{
+	int i;
+
+	cout << "solve by Gradient Descent\n";
+
+	A = EigenSpMat( rowCnt_A, HR_pixelCount );
+	b = VectorXd( rowCnt_A);
+	C = EigenSpMat( rowCnt_C, HR_pixelCount );
+	x = VectorXd( HR_pixelCount );
+
+	cout << "forming A ...\n";
+	A.setFromTriplets( A_triplets.begin(), A_triplets.end() );
+	cout << "A.size(): " << A.rows() << ", " << A.cols() << endl;
+
+	cout << "forming b ...\n";
+	for (i = 0; i < rowCnt_A; i++) {
+		b(i) = b_vec[i];
+	}
+
+	cout << "forming x (initial guess) ...\n";
+	for (i = 0; i < HR_pixelCount; i++) {
+		x(i) = 0;
+	}
+
+	cout << "forming C ...\n";
+	C.setFromTriplets( C_triplets.begin(), C_triplets.end() );
+	cout << "C.size(): " << C.rows() << ", " << C.cols() << endl;
+
+	cout << "forming AT...\n";
+	EigenSpMat AT = A.transpose();
+
+	cout << "forming CT...\n";
+	EigenSpMat CT = C.transpose();
+
+	//cout << "multiplying ATA..." << endl;
+	//ATA = (AT * A).pruned(100, EX_small);
+	
+	cout << "multiplying CTC..." << endl;
+	CTC = (CT * C).pruned(100, EX_small);
+
+	//cout << "multiplying ATb...\n";
+	//ATb = AT * b;
+
+	L2GradientDescent_GPU(A, AT, CTC, b, x);
+}
+
+void Linear_Constructor::solve_by_L1GradientDescent()
+{
+	int i;
+
+	cout << "solve by Gradient Descent\n";
+
+	A = EigenSpMat( rowCnt_A, HR_pixelCount );
+	b = VectorXd( rowCnt_A);
+	C = EigenSpMat( rowCnt_C, HR_pixelCount );
+	x_n = VectorXd( HR_pixelCount );
+	x_n1 = VectorXd( HR_pixelCount );
+
+	cout << "forming A ...\n";
+	A.setFromTriplets( A_triplets.begin(), A_triplets.end() );
+	cout << "A.size(): " << A.rows() << ", " << A.cols() << endl;
+
+	cout << "forming b ...\n";
+	for (i = 0; i < rowCnt_A; i++) {
+		b(i) = b_vec[i];
+	}
+
+	cout << "forming x (initial guess) ...\n";
+	for (i = 0; i < HR_pixelCount; i++) {
+		x_n(i) = 0;
+		x_n1(i) = 0;
+	}
+
+	cout << "forming C ...\n";
+	C.setFromTriplets( C_triplets.begin(), C_triplets.end() );
+	cout << "C.size(): " << C.rows() << ", " << C.cols() << endl;
+
+	cout << "forming AT...\n";
+	EigenSpMat AT = A.transpose();
+
+	cout << "forming CT...\n";
+	EigenSpMat CT = C.transpose();
+
+	//cout << "multiplying ATA..." << endl;
+	//ATA = (AT * A).pruned(100, EX_small);
+	
+	cout << "multiplying CTC..." << endl;
+	CTC = (CT * C).pruned(100, EX_small);
+	double CTC_norm = CTC.norm();
 
 	cout << "multiplying ATb...\n";
 	ATb = AT * b;
 
 	double err = EX_big;
 	// 0.0001
-	while (err > 0.0001) {
-		x_n1 = x_n + 0.5 * ( ATb - (AT * (A * x_n)) - (CT * (C * x_n)) ); // 27 sec
-		//x_n1 = x_n + 0.5 * ( ATb - (ATA * x_n) - (CTC * x_n) ); // 33 sec
+	while (err > 0.01) {
+
+		x_n1 = x_n + 1 * ( AT * (b - (A * x_n) / (b - (A * x_n)).norm() ) - (CTC * x_n) / CTC_norm ); // 26 sec
 
 		err = (x_n1 - x_n).norm() / HR_pixelCount;
-		//cout << "err: " << err << endl;
+		cout << "err: " << err << endl;
 
 		x_n = x_n1;
 	}

@@ -11,3 +11,4 @@ typedef Eigen::Triplet<double> T;
 //typedef Eigen::SparseMatrix<double, Eigen::RowMajor> EigenSpRowMat;
 //typedef Eigen::SparseMatrix<double, Eigen::ColMajor> EigenSpColMat;
 typedef Eigen::SparseMatrix<double> EigenSpMat;
+typedef Eigen::SparseMatrix<double, Eigen::RowMajor> EigenSpMat_Row;

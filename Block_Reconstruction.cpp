@@ -27,17 +27,17 @@ Block_Constructor::Block_Constructor(vector<Mat>& imgs,
 	longSide = (BigHR_rows > BigHR_cols) ? BigHR_rows : BigHR_cols;
 	totalBlocksCount = pow(4, floor(log(longSide/200.f)/log(2.0f))); // origin: ceil
 
-	blockPerAxis = sqrt(totalBlocksCount);
+	blockPerAxis = 16;//sqrt(totalBlocksCount);
 	blockWidth = double(BigHR_cols)/blockPerAxis;
 	blockHeight = double(BigHR_rows)/blockPerAxis;	
-
+	/*
 	dataChunks.resize(int(BigHR_rows / blockHeight) + 1);
 	for (int i = 0; i < dataChunks.size(); i++) {
 		dataChunks[i].resize(int(BigHR_cols / blockWidth) + 1);
 	}
-
+	//*/
 	
-	for (int i = 0; i < dataChunks.size(); i++) for (int j = 0; j < dataChunks[i].size(); j++)
+	for (int i = 0; i < blockPerAxis + 1; i++) for (int j = 0; j < blockPerAxis + 1; j++)
 	{
 		int rectWidth, rectHeight;
 		if ((j+1)*blockWidth >= BigHR_cols)
@@ -56,15 +56,25 @@ Block_Constructor::Block_Constructor(vector<Mat>& imgs,
 		{
 			rectHeight = (int)((i+1)*blockHeight) - (int)(i*blockHeight);
 		}
-		dataChunks[i][j].inBigHR = Rect((int)j*blockWidth, (int)i*blockHeight, rectWidth, rectHeight);
-		dataChunks[i][j].inSmallHR = Rect(overlappingPix, overlappingPix, rectWidth, rectHeight);
-		dataChunks[i][j].leftBorder = j*blockWidth - overlappingPix;
-		dataChunks[i][j].rightBorder = j*blockWidth + rectWidth + overlappingPix;
-		dataChunks[i][j].upBorder = i*blockHeight - overlappingPix;
-		dataChunks[i][j].downBorder = i*blockHeight + rectHeight + overlappingPix;
-		dataChunks[i][j].SmallHR_rows = dataChunks[i][j].downBorder - dataChunks[i][j].upBorder;
-		dataChunks[i][j].SmallHR_cols = dataChunks[i][j].rightBorder - dataChunks[i][j].leftBorder;
-		
+
+		if (rectWidth <= 0 || rectHeight <= 0) {
+			continue;
+		}
+
+		DataChunk dataChunk;
+
+		dataChunk.blockRowIdx = i;
+		dataChunk.blockColIdx = j;
+		dataChunk.inBigHR = Rect((int)j*blockWidth, (int)i*blockHeight, rectWidth, rectHeight);
+		dataChunk.inSmallHR = Rect(overlappingPix, overlappingPix, rectWidth, rectHeight);
+		dataChunk.leftBorder = j*blockWidth - overlappingPix;
+		dataChunk.rightBorder = j*blockWidth + rectWidth + overlappingPix;
+		dataChunk.upBorder = i*blockHeight - overlappingPix;
+		dataChunk.downBorder = i*blockHeight + rectHeight + overlappingPix;
+		dataChunk.SmallHR_rows = dataChunk.downBorder - dataChunk.upBorder;
+		dataChunk.SmallHR_cols = dataChunk.rightBorder - dataChunk.leftBorder;
+
+		dataChunks.push_back(dataChunk);
 	}
 	//----- copy data -----
 	tmp_imgs = imgs;
@@ -80,12 +90,12 @@ Block_Constructor::Block_Constructor(vector<Mat>& imgs,
 	
 }
 
-void Block_Constructor::gather_LR_pix(DataChunk& dataChunk, int blockRowIdx, int blockColIdx)
+void Block_Constructor::gather_LR_pix(DataChunk& dataChunk)
 {
 	double pos_x, pos_y;
 	int cur_blockRowIdx, cur_blockColIdx, cur_crossBlockColIdx, cur_crossBlockRowIdx;
 	int i, j, k;
-	
+	int blockRowIdx = dataChunk.blockRowIdx, blockColIdx = dataChunk.blockColIdx;
 
 	for (k = 0; k < LR_imgCount; k++) for (i = 0; i < BigLR_rows; i++) for(j = 0; j < BigLR_cols; j++)
 	{
@@ -162,6 +172,33 @@ void Block_Constructor::construct(Mat& super_PSF,
 
 	time(&t0);
 
+#pragma omp parallel for
+	for (int idx = 0; idx < dataChunks.size(); idx++)
+	{
+		cout << "constructing i: " << dataChunks[idx].blockRowIdx << ", j: " << dataChunks[idx].blockColIdx << endl;
+		// we delete it at linear_constructor
+		gather_LR_pix(dataChunks[idx]);
+		dataChunks[idx].tmp_HR_pixels = new HR_Pixel_Array(dataChunks[idx].SmallHR_rows, dataChunks[idx].SmallHR_cols);
+		dataChunks[idx].tmp_relations = new InfluenceRelation(dataChunks[idx], super_PSF, super_BPk, interp_scale);
+
+
+		Linear_Constructor linearConstructor(dataChunks[idx]);
+		linearConstructor.addRegularization_grad2norm(0.05);
+		//linearConstructor.solve_by_CG_GPU();
+		linearConstructor.solve_by_CG();
+		//linearConstructor.solve_by_L2GradientDescent();
+		//linearConstructor.solve_by_L2GradientDescent_GPU();
+		linearConstructor.output(dataChunks[idx].smallHR);
+		
+		dataChunks[idx].data_LR_pix.clear();
+		dataChunks[idx].data_LR_pix.shrink_to_fit();
+		delete dataChunks[idx].tmp_relations;
+		delete dataChunks[idx].tmp_HR_pixels;
+
+		//imwrite("output/datachunk" + int2str(dataChunks[idx].blockRowIdx) + int2str(dataChunks[idx].blockColIdx) + ".bmp", dataChunks[idx].smallHR);
+	}
+
+	/*
 	for (int i = 0; i < dataChunks.size(); i++) for (int j = 0; j < dataChunks[i].size(); j++)
 	{
 		if (dataChunks[i][j].inBigHR.height <= 0 || dataChunks[i][j].inBigHR.width <= 0)
@@ -171,23 +208,23 @@ void Block_Constructor::construct(Mat& super_PSF,
 		// we delete it at linear_constructor
 		gather_LR_pix(dataChunks[i][j], i, j);
 		dataChunks[i][j].tmp_HR_pixels = new HR_Pixel_Array(dataChunks[i][j].SmallHR_rows, dataChunks[i][j].SmallHR_cols);
-		dataChunks[i][j].tmp_relations = new InfluenceRelation(dataChunks[i][j], super_PSF, super_BPk, interp_scale);		
-		
+		dataChunks[i][j].tmp_relations = new InfluenceRelation(dataChunks[i][j], super_PSF, super_BPk, interp_scale);
+
+
 		Linear_Constructor linearConstructor(dataChunks[i][j]);
 		linearConstructor.addRegularization_grad2norm(0.05);
 		//linearConstructor.solve_by_CG();
-		linearConstructor.solve_by_GradientDescent();
+		linearConstructor.solve_by_L2GradientDescent();
 		linearConstructor.output(dataChunks[i][j].smallHR);
-		//*/
+		
 		dataChunks[i][j].data_LR_pix.clear();
 		dataChunks[i][j].data_LR_pix.shrink_to_fit();
 		delete dataChunks[i][j].tmp_relations;
 		delete dataChunks[i][j].tmp_HR_pixels;
 
 		//imwrite("output/datachunk" + int2str(i) + int2str(j) + ".bmp", dataChunks[i][j].smallHR);
-		//*/
 	}
-
+	//*/
 	time(&t1);
 
 	cout << "construction time: " << difftime(t1, t0) << endl;
@@ -197,11 +234,12 @@ void Block_Constructor::output(Mat& HRimg)
 {
 	HRimg = Mat::zeros(BigHR_rows, BigHR_cols, CV_64F );
 
-	for (int i = 0; i < dataChunks.size(); i++) for (int j = 0; j < dataChunks[i].size(); j++)
+	for (int idx = 0; idx < dataChunks.size(); idx++)
 	{
-		if (dataChunks[i][j].inBigHR.height <= 0 || dataChunks[i][j].inBigHR.width <= 0)
+		cout << "copy i: " << dataChunks[idx].blockRowIdx << ", j: " << dataChunks[idx].blockColIdx << endl;
+		if (dataChunks[idx].inBigHR.height <= 0 || dataChunks[idx].inBigHR.width <= 0)
 			continue;
 		//cout << "copying...  i: " << i << ", j: " << j << endl;
-		dataChunks[i][j].smallHR(dataChunks[i][j].inSmallHR).copyTo(HRimg(dataChunks[i][j].inBigHR));
+		dataChunks[idx].smallHR(dataChunks[idx].inSmallHR).copyTo(HRimg(dataChunks[idx].inBigHR));
 	}
 }

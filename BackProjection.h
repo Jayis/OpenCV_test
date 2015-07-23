@@ -13,7 +13,7 @@
 #include "Methods.h"
 #include "Macros.h"
 
-using namespace cv;
+//using namespace cv;
 using namespace std;
 
 void BackProjection ( Mat& HRimg, double scale, vector<Mat>& imgs, vector<Mat>& flows, Mat& PSF, Mat& BPkernel, TermCriteria& BPstop );

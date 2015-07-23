@@ -2,6 +2,8 @@
 
 #include <time.h>
 
+#include <omp.h>
+
 #include <opencv2\core\core.hpp>
 
 #include "DataStructures.h"
@@ -18,7 +20,7 @@ public:
 									 double scale,
 									 Mat& PSF);
 
-	vector< vector< DataChunk > > dataChunks;
+	vector< DataChunk > dataChunks;
 
 	void construct(Mat& super_PSF,
 		Mat& super_BPk,
@@ -27,7 +29,7 @@ public:
 	void output(Mat& HRimg);
 
 private:
-	void gather_LR_pix(DataChunk& dataChunk, int blockRowIdx, int blockColIdx);
+	void gather_LR_pix(DataChunk& dataChunk);
 
 	int overlappingPix;
 	int BigLR_rows, BigLR_cols, BigHR_rows, BigHR_cols;

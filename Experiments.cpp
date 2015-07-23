@@ -422,7 +422,7 @@ void flow2H_test () {
 }
 
 void LinearConstruct_test () {
-	String test_set = "bill256";	
+	String test_set = "bb2Crop2000";	
 	int n = 4;
 
 	vector<Mat> imgsC1;
@@ -649,6 +649,12 @@ void LinearConstruct_test () {
 	//DivideToBlocksToConstruct( imgsC1, combineFlows, combineConfs, PSF, scale, HRimg);
 	//DivideToBlocksToConstruct( imgsC1, flows, confs, PSF, scale, HRimg);
 	/*
+	Linear_Constructor linearConstructor( imgsC1, combineFlows, combineConfs, scale, PSF);
+	linearConstructor.addRegularization_grad2norm(0.05);
+	linearConstructor.solve_by_CG();
+	linearConstructor.output(HRimg);
+	//*/
+	/*
 	TermCriteria BPstop;
 	BPstop.type = TermCriteria::COUNT + TermCriteria::EPS;
 	BPstop.maxCount = 500;
@@ -662,12 +668,7 @@ void LinearConstruct_test () {
 	outputHRcolor(HRimg, imgsC3[0], HRimgC3);
 	imwrite("output/" + test_set + "_BlockReconstructC3_wConf.bmp", HRimgC3);
 	//*/
-	/*
-	LinearConstructor linearConstructor( imgsC1, combineFlows, combineConfs, 2, PSF);
-	linearConstructor.addRegularization_grad2norm(0.05);
-	linearConstructor.solve_by_CG();
-	linearConstructor.output(HRimg);
-	/**/
+
 	/*
 	imwrite("output/" + test_set + "_LinearConstructC1_wConf.bmp", HRimg);
 	outputHRcolor(HRimg, imgsC3[0], HRimgC3);
