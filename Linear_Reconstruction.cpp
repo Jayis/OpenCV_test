@@ -321,7 +321,7 @@ void Linear_Constructor::solve_by_CG_GPU() {
 
 	cout << "call GPU solver\n";
 	cout << "solving...\n";
-	ConjugateGradient_GPU(ATA, ATb, x);
+	//ConjugateGradient_GPU(ATA, ATb, x);
 }
 
 void Linear_Constructor::solve_by_L2GradientDescent()
@@ -437,7 +437,7 @@ void Linear_Constructor::solve_by_L2GradientDescent_GPU()
 	//cout << "multiplying ATb...\n";
 	//ATb = AT * b;
 
-	L2GradientDescent_GPU(A, AT, CTC, b, x);
+	//L2GradientDescent_GPU(A, AT, CTC, b, x);
 }
 
 void Linear_Constructor::solve_by_L1GradientDescent()

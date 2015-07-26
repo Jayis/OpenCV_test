@@ -1,5 +1,8 @@
 #pragma once
 
+#include <algorithm>
+#include <vector>
+
 #include <opencv2\core\core.hpp>
 
 #include "DataStructures.h"
@@ -8,6 +11,7 @@
 #include "Tools.h"
 
 using namespace cv;
+using namespace std;
 
 class BP_Constructor
 {
@@ -37,3 +41,5 @@ private:
 	LR_Pixel_Array* LR_pixels;
 	InfluenceRelation* relations;
 };
+
+bool compareDouble (double a, double b);

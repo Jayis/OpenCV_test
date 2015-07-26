@@ -7,7 +7,7 @@
 #include "Methods.h"
 #include "Macros.h"
 #include "Tools.h"
-#include "GPU.h"
+//#include "GPU.h"
 
 using namespace cv;
 using namespace Eigen;

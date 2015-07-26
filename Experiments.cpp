@@ -422,7 +422,7 @@ void flow2H_test () {
 }
 
 void LinearConstruct_test () {
-	String test_set = "res256";	
+	String test_set = "bill256";	
 	int n = 4;
 
 	vector<Mat> imgsC1;
@@ -475,7 +475,7 @@ void LinearConstruct_test () {
 	symm_flows_back.resize(n);
 	symm_confs.resize(n);
 
-	int sigma = 2;
+	int sigma = 1;
 	cout << "read in images\n";
 	Mat tmp[2];
 	for (int k = 0; k < n; k++) {
@@ -681,8 +681,8 @@ void LinearConstruct_test () {
 	
 	TermCriteria BPstop;
 	BPstop.type = TermCriteria::COUNT + TermCriteria::EPS;
-	BPstop.maxCount = 100;
-	BPstop.epsilon = 1;
+	BPstop.maxCount = 1500;
+	BPstop.epsilon = 0.05;
 	//*/
 	BP_Constructor BPconstructor(HRimg, scale, imgsC1, combineFlows, PSF, BPk, BPstop, combineConfs);
 

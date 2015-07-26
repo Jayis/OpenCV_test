@@ -31,7 +31,7 @@ void BP_Constructor::constructor( Mat& HRimg, double scale, vector<Mat>& imgs, v
 	// all LR images should have same Size()
 
 	// parameter
-	BP_c = 1;
+	BP_c = 0.5;
 	interp_scale = 500;
 
 	int i, j, k;
@@ -117,6 +117,8 @@ void BP_Constructor::solve()
 	Mat LR_per;
 	// start Back Projection
 	Mat HRimg = Mat::zeros(HR_rows, HR_cols, CV_64F), Lap = Mat::zeros(HR_rows, HR_cols, CV_64F);
+	vector<double> tmp_vec;
+	tmp_vec.resize(4);
 
 	int iter = 1;
 	double epsi = 0;
@@ -128,11 +130,11 @@ void BP_Constructor::solve()
 		
 		
 		// try also update laplace term
-		for (int i = 0; i < HR_rows; i++) for (int j = 0; j < HR_cols; j++)
+		for (i = 0; i < HR_rows; i++) for (j = 0; j < HR_cols; j++)
 		{
 			HRimg.at<double>(i, j) = HR_pixels->access(i, j).val;
 		}
-		Laplacian(HRimg, Lap, CV_64F, 1, 1, 0, BORDER_REPLICATE );
+		//Laplacian(HRimg, Lap, CV_64F, 1, 1, 0, BORDER_REPLICATE );
 
 		// see LR perception
 		//
@@ -148,7 +150,7 @@ void BP_Constructor::solve()
 
 
 		// for each HR x, calculate f(x)'n+1'
-		for (i = 0; i < HR_rows; i++) for (j = 0; j < HR_cols; j++) {
+		for (i = 1; i < HR_rows-1; i++) for (j = 1; j < HR_cols-1; j++) {
 			sum_diff = 0;
 			sum_hBP = HR_pixels->access(i, j).hBP_sum;
 			sum_confidence = 0;
@@ -164,14 +166,57 @@ void BP_Constructor::solve()
 
 				// sum up diff
 				diff = cur_influenced_pix.pixel->val - cur_influenced_pix.pixel->perception;				
-				sum_diff += diff * ( SQR(cur_hBP) ) * SQR(cur_confidence)/**/;	
+				sum_diff += diff * ( SQR(cur_hBP) ) * cur_confidence/**/;	
 				//sum_diff += diff *  cur_hBP  * cur_confidence;	
 			}
 			// deal with constant & weight normalization
 			sum_diff /= (BP_c * sum_hBP /** sum_confidence/**/);
 
 			// try also update laplace
-			sum_diff += 0.006 * (Lap.at<double>(i, j));
+			//sum_diff += 0.05 * (Lap.at<double>(i, j));
+
+			// try heuristic L1
+			
+			tmp_vec[0] = HRimg.at<double>(i-1, j);
+			tmp_vec[1] = HRimg.at<double>(i+1, j);
+			tmp_vec[2] = HRimg.at<double>(i, j-1);
+			tmp_vec[3] = HRimg.at<double>(i, j+1);
+
+			sort(tmp_vec.begin(), tmp_vec.end(), compareDouble);
+			double new_x = HR_pixels->access(i, j).val  + sum_diff;
+			double cur_x = HR_pixels->access(i, j).val;
+			double L1_reg = 0;
+			/*
+			if (cur_x < tmp_vec[1]) {
+				L1_reg = tmp_vec[1] - cur_x;
+			}
+			else if (cur_x > tmp_vec[2]) {
+				L1_reg = tmp_vec[2] - cur_x;
+			}
+			//*/
+			/*
+			if (cur_x < tmp_vec[1]) {
+				L1_reg = 0.75 * (tmp_vec[1] - cur_x) + 0.25 * (tmp_vec[2] - cur_x);
+			}
+            if (cur_x > tmp_vec[2]) {
+				L1_reg = 0.75 * (tmp_vec[2] - cur_x) + 0.25 * (tmp_vec[3] - cur_x);
+			}
+			//*/
+			if (cur_x < tmp_vec[0]) {
+				L1_reg = tmp_vec[1] - cur_x;
+			}
+			else if (cur_x < tmp_vec[1]) {
+				L1_reg = tmp_vec[2] - cur_x;
+			}
+			if (cur_x > tmp_vec[3]) {
+				L1_reg = tmp_vec[2] - cur_x;
+			}
+			else if (cur_x > tmp_vec[2]) {
+				L1_reg = tmp_vec[1] - cur_x;
+			}
+
+			sum_diff += 0.05 * L1_reg;
+			//*/
 
 			// update HR
 			HR_pixels->access(i, j).val += sum_diff;
@@ -195,6 +240,9 @@ void BP_Constructor::solve()
 		}
 
 		iter++;
+
+		cout << "BP iteration: " << iter << endl;
+		cout << "epsilon: " << epsi << endl;
 	}
 
 	cout << "BP iteration: " << iter << endl;
@@ -217,4 +265,9 @@ BP_Constructor::~BP_Constructor()
 	delete HR_pixels;
 	delete LR_pixels;
 	delete relations;
+}
+
+bool compareDouble (double a, double b)
+{
+	return (a < b);
 }
