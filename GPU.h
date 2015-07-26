@@ -17,6 +17,7 @@
 //#include <helper_cuda.h>       // helper function CUDA error checking and initialization
 
 #include "Macros.h"
+#include "My_CudaHelper.h"
 
 using namespace Eigen;
 
@@ -25,3 +26,5 @@ void eigenSpMat2cudaCSR(EigenSpMat_Row& ATA, int *I, int *J, double *val, int N,
 void ConjugateGradient_GPU (EigenSpMat& ATA, VectorXd& ATb, VectorXd& xxx);
 
 void L2GradientDescent_GPU (EigenSpMat& A, EigenSpMat& AT, EigenSpMat& CTC, VectorXd& b, VectorXd& xxx);
+
+void SparseMatMultiplication (EigenSpMat);

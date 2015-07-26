@@ -116,7 +116,8 @@ void BP_Constructor::solve()
 
 	Mat LR_per;
 	// start Back Projection
-	
+	Mat HRimg = Mat::zeros(HR_rows, HR_cols, CV_64F), Lap = Mat::zeros(HR_rows, HR_cols, CV_64F);
+
 	int iter = 1;
 	double epsi = 0;
 	bool stop = false;
@@ -124,6 +125,14 @@ void BP_Constructor::solve()
 		epsi = 0;
 
 		HR_to_LR_percetion(*HR_pixels, *LR_pixels, *relations);
+		
+		
+		// try also update laplace term
+		for (int i = 0; i < HR_rows; i++) for (int j = 0; j < HR_cols; j++)
+		{
+			HRimg.at<double>(i, j) = HR_pixels->access(i, j).val;
+		}
+		Laplacian(HRimg, Lap, CV_64F, 1, 1, 0, BORDER_REPLICATE );
 
 		// see LR perception
 		//
@@ -155,11 +164,14 @@ void BP_Constructor::solve()
 
 				// sum up diff
 				diff = cur_influenced_pix.pixel->val - cur_influenced_pix.pixel->perception;				
-				sum_diff += diff * ( SQR(cur_hBP) ) * cur_confidence;	
+				sum_diff += diff * ( SQR(cur_hBP) ) * SQR(cur_confidence)/**/;	
 				//sum_diff += diff *  cur_hBP  * cur_confidence;	
 			}
 			// deal with constant & weight normalization
-			sum_diff /= (BP_c * sum_hBP /** sum_confidence*/);
+			sum_diff /= (BP_c * sum_hBP /** sum_confidence/**/);
+
+			// try also update laplace
+			sum_diff += 0.006 * (Lap.at<double>(i, j));
 
 			// update HR
 			HR_pixels->access(i, j).val += sum_diff;

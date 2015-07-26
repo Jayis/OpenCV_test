@@ -8,8 +8,12 @@
 
 #include "DataStructures.h"
 #include "Methods.h"
+#include "NN_Reconstruction.h"
 
 using namespace cv;
+
+extern int tmp_blockPerAxis;
+extern double construct_t[21], tmp_t;
 
 class Block_Constructor
 {

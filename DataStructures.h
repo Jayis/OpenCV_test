@@ -28,10 +28,12 @@ public:
 	HR_Pixel();
 
 	int i, j;
-	double hBP_sum;
+	double hBP_sum, var;
 	//vector<Influenced_Pixel> influenced_pixels;
 	int influence_link_start;
 	int influence_link_cnt;
+
+	int highVar_idx;
 };
 
 class LR_Pixel : public Pixel {
@@ -151,20 +153,13 @@ public:
 	int leftBorder, rightBorder, upBorder, downBorder;
 	int SmallHR_rows, SmallHR_cols;
 	int blockRowIdx, blockColIdx;
+	int overLappingPix;
 
 	InfluenceRelation* tmp_relations;
-};
-/*
-class Constructor
-{
-public:
-	void constructor();
 
-	int LR_imgCount, LR_rows, LR_cols, LR_pixelCount;
-	int HR_rows, HR_cols, HR_pixelCount;
-	double up_scale, interp_scale;
+	int highVar_cnt;
+	bool fullReconstruct;
 };
-//*/
 
 //-----SparseMat
 class Element {

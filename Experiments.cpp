@@ -422,7 +422,7 @@ void flow2H_test () {
 }
 
 void LinearConstruct_test () {
-	String test_set = "bb2Crop2000";	
+	String test_set = "res256";	
 	int n = 4;
 
 	vector<Mat> imgsC1;
@@ -642,10 +642,17 @@ void LinearConstruct_test () {
 	Mat BPk = PSF;
 	
 	Mat HRimg, HRimgC3;
+	Mat HRimg1, diff, colorDiff;
 	
-	Block_Constructor divided2Blocks( imgsC1, combineFlows, combineConfs, scale, PSF);
-	divided2Blocks.output(HRimg);
-
+	/*
+	for (int i = 5; i < 6; i++) {
+		tmp_blockPerAxis = i;
+		Block_Constructor divided2Blocks( imgsC1, combineFlows, combineConfs, scale, PSF);
+		divided2Blocks.output(HRimg);
+		construct_t[i] = tmp_t;
+	}
+	//*/
+	
 	//DivideToBlocksToConstruct( imgsC1, combineFlows, combineConfs, PSF, scale, HRimg);
 	//DivideToBlocksToConstruct( imgsC1, flows, confs, PSF, scale, HRimg);
 	/*
@@ -655,15 +662,33 @@ void LinearConstruct_test () {
 	linearConstructor.output(HRimg);
 	//*/
 	/*
+	time_t t0, t1;
+	time(&t0);
+	NN_Constructor NNConstructor( imgsC1, combineFlows, combineConfs, scale, PSF);
+	NNConstructor.solve_by_LinearRefine();
+	NNConstructor.output(HRimg);
+	time(&t1);
+
+	cout << difftime(t1, t0) << endl;
+	//*/
+	/*
+	seeMatDiff(HRimg, HRimg1, diff);
+	outputHRcolor(diff, imgsC3[0], HRimgC3);
+	applyColorMap(HRimgC3, colorDiff, COLORMAP_JET);
+
+	imwrite("output/colorDiff.bmp", colorDiff);
+	//*/
+	
 	TermCriteria BPstop;
 	BPstop.type = TermCriteria::COUNT + TermCriteria::EPS;
-	BPstop.maxCount = 500;
+	BPstop.maxCount = 100;
 	BPstop.epsilon = 1;
 	//*/
-	//BP_Constructor BPconstructor(HRimg, scale, imgsC1, combineFlows, PSF, BPk, BPstop, combineConfs);
+	BP_Constructor BPconstructor(HRimg, scale, imgsC1, combineFlows, PSF, BPk, BPstop, combineConfs);
 
 	//BackProjection(HRimg, scale, imgsC1, combineFlows, PSF, BPk, BPstop);
 	//BackProjection_Confidence(HRimg, scale, imgsC1, combineFlows, PSF, BPk, BPstop, combineConfs);
+	
 	imwrite("output/" + test_set + "_BlockReconstructC1_wConf.bmp", HRimg);
 	outputHRcolor(HRimg, imgsC3[0], HRimgC3);
 	imwrite("output/" + test_set + "_BlockReconstructC3_wConf.bmp", HRimgC3);

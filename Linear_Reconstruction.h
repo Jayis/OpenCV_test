@@ -1,6 +1,7 @@
 #pragma once
 
 #include <opencv2\core\core.hpp>
+#include <opencv2\contrib\contrib.hpp>
 
 #include "DataStructures.h"
 #include "Methods.h"
@@ -37,9 +38,9 @@ private:
 	void addDataFidelityWithConf(vector<Mat>& conf);
 	void addDataFidelityWithConf(DataChunk& dataChunk);
 
-	vector<T> A_triplets, C_triplets;
+	vector<T> A_triplets, C_triplets, rim_triplets;
 	vector<double> b_vec;
-	int rowCnt_A, rowCnt_C;
+	int rowCnt_A, rowCnt_C, rowCnt_rim;
 	VectorXd ATb, b, x, x_n, x_n1;
 	EigenSpMat A, ATA;
 	EigenSpMat C, CTC;
@@ -52,4 +53,6 @@ private:
 	HR_Pixel_Array* HR_pixels;
 	LR_Pixel_Array* LR_pixels;
 	InfluenceRelation* relations;
+
+	bool fullReconstruct;
 };

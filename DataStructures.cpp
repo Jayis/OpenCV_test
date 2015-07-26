@@ -17,6 +17,7 @@ LR_Pixel::LR_Pixel()
 HR_Pixel::HR_Pixel()
 {
 	hBP_sum = 0;
+	var = 100;
 	influence_link_cnt = 0;
 }
 //

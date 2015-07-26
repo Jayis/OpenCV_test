@@ -35,11 +35,19 @@ Linear_Constructor::Linear_Constructor( DataChunk& dataChunk ) {
 	HR_rows = dataChunk.SmallHR_rows;
 	HR_cols = dataChunk.SmallHR_cols;
 	LR_pixelCount = dataChunk.data_LR_pix.size();
-	HR_pixelCount = HR_rows * HR_cols;
+	
 
 	relations = dataChunk.tmp_relations;
 	HR_pixels = dataChunk.tmp_HR_pixels;
+	fullReconstruct = dataChunk.fullReconstruct;
 	//LR_pixels = new LR_Pixel_Array(1,1,1);
+	if (fullReconstruct) {
+		HR_pixelCount = HR_rows * HR_cols;
+	}
+	else {
+		HR_pixelCount = dataChunk.highVar_cnt;
+	}
+
 
 	addDataFidelityWithConf(dataChunk);
 
@@ -142,9 +150,16 @@ void Linear_Constructor::addDataFidelityWithConf(DataChunk& dataChunk ) {
 		// A
 		for (int p = 0; p < cur_LR_pix.perception_link_cnt; p++) {
 			Perception_Pixel& cur_perception_pix = relations->perception_links[cur_LR_pix.perception_link_start + p];
-			sourcePos2ColIdx = cur_perception_pix.pixel -> i * HR_cols + cur_perception_pix.pixel -> j;
 			
-			A_triplets.push_back( T(rowCnt_A, sourcePos2ColIdx, curConf * cur_perception_pix.hPSF) );	
+			if (fullReconstruct) {
+				sourcePos2ColIdx = cur_perception_pix.pixel -> i * HR_cols + cur_perception_pix.pixel -> j;
+			}
+			else {
+				sourcePos2ColIdx = cur_perception_pix.pixel -> highVar_idx;				
+			}
+			if (sourcePos2ColIdx >= 0) {
+				A_triplets.push_back( T(rowCnt_A, sourcePos2ColIdx, curConf * cur_perception_pix.hPSF) );	
+			}
 		}
 		// b
 		b_vec.push_back( curConf * cur_LR_pix.val );
@@ -160,34 +175,63 @@ void Linear_Constructor::addRegularization_grad2norm(double gamma) {
 
 	int HR2ColIdx, cur_HR_idx;
 	double sqrtGamma = sqrt(gamma);
-
-	rowCnt_C = 0;
+		
 	C_triplets.reserve(4 * HR_pixelCount);
 	//b_vec.reserve(b_vec.size() + 2 * HR_pixelCount);
 
-	// Grad x
-	for (int i = 0; i < HR_rows; i++) for (int j = 0; j < HR_cols - 1; j++) {
-		cur_HR_idx = i * HR_cols + j;
+	if (fullReconstruct) {
+		rowCnt_C = 0;
+		// Grad x
+		for (int i = 0; i < HR_rows; i++) for (int j = 0; j < HR_cols - 1; j++) {
+			cur_HR_idx = i * HR_cols + j;
 
-		C_triplets.push_back( T(rowCnt_C, cur_HR_idx, sqrtGamma) );
-		C_triplets.push_back( T(rowCnt_C, cur_HR_idx+1, -sqrtGamma) );
-		//b_vec.push_back(0);
+			C_triplets.push_back( T(rowCnt_C, cur_HR_idx, sqrtGamma) );
+			C_triplets.push_back( T(rowCnt_C, cur_HR_idx+1, -sqrtGamma) );
+			//b_vec.push_back(0);
 
-		cur_HR_idx ++;
-		rowCnt_C ++;
+			cur_HR_idx ++;
+			rowCnt_C ++;
+		}
+		// Grad y
+		for (int i = 0; i < HR_rows - 1; i++) for (int j = 0; j < HR_cols; j++) {
+			cur_HR_idx = i * HR_cols + j;
+
+			C_triplets.push_back( T(rowCnt_C, cur_HR_idx, sqrtGamma) );
+			C_triplets.push_back( T(rowCnt_C, cur_HR_idx+HR_cols, -sqrtGamma) );
+			//b_vec.push_back(0);
+
+			cur_HR_idx ++;
+			rowCnt_C ++;
+		}
 	}
-	// Grad y
-	for (int i = 0; i < HR_rows - 1; i++) for (int j = 0; j < HR_cols; j++) {
-		cur_HR_idx = i * HR_cols + j;
+	else {
+		rowCnt_C = 0;
+		// Grad x
+		for (int i = 0; i < HR_rows; i++) for (int j = 0; j < HR_cols - 1; j++) {
+			HR_Pixel& cur_HR_pix = HR_pixels->access(i, j);
+			HR_Pixel& nxt_HR_pix = HR_pixels->access(i, j+1);
 
-		C_triplets.push_back( T(rowCnt_C, cur_HR_idx, sqrtGamma) );
-		C_triplets.push_back( T(rowCnt_C, cur_HR_idx+HR_cols, -sqrtGamma) );
-		//b_vec.push_back(0);
+			if (cur_HR_pix.highVar_idx != -1 && nxt_HR_pix.highVar_idx != -1) {
+				C_triplets.push_back( T(rowCnt_C, cur_HR_pix.highVar_idx, sqrtGamma) );
+				C_triplets.push_back( T(rowCnt_C, nxt_HR_pix.highVar_idx, -sqrtGamma) );
+			}			
+			//b_vec.push_back(0);
+			rowCnt_C ++;
+		}
+		// Grad y
+		for (int i = 0; i < HR_rows - 1; i++) for (int j = 0; j < HR_cols; j++) {
+			HR_Pixel& cur_HR_pix = HR_pixels->access(i, j);
+			HR_Pixel& nxt_HR_pix = HR_pixels->access(i+1, j);
 
-		cur_HR_idx ++;
-		rowCnt_C ++;
+			if (cur_HR_pix.highVar_idx != -1 && nxt_HR_pix.highVar_idx != -1) {
+				C_triplets.push_back( T(rowCnt_C, cur_HR_pix.highVar_idx, sqrtGamma) );
+				C_triplets.push_back( T(rowCnt_C, nxt_HR_pix.highVar_idx, -sqrtGamma) );
+			}			
+			//b_vec.push_back(0);
+			rowCnt_C ++;
+		}
+
 	}
-
 }
 
 void Linear_Constructor::solve_by_CG() {
@@ -327,8 +371,10 @@ void Linear_Constructor::solve_by_L2GradientDescent()
 	//ATb = AT * b;
 
 	double err = EX_big;
+	int k = 1;
+	int max_iter = 10000;
 	// 0.0001
-	while (err > 0.0001) {
+	while (err > 0.0001 && k < max_iter) {
 		// by_CG -> 36 sec
 		//x_n1 = x_n + 0.5 * ( ATb - (AT * (A * x_n)) - (CT * (C * x_n)) ); // 27 sec
 		//x_n1 = x_n + 0.5 * ( ATb - (ATA * x_n) - (CTC * x_n) ); // 33 sec
@@ -339,7 +385,10 @@ void Linear_Constructor::solve_by_L2GradientDescent()
 		//cout << "err: " << err << endl;
 
 		x_n = x_n1;
+
+		k++;
 	}
+	printf("iteration = %3d, residual = %e\n", k, err);
 
 	x = x_n1;
 }
@@ -456,11 +505,23 @@ void Linear_Constructor::solve_by_L1GradientDescent()
 void Linear_Constructor::output(Mat& HRimg) {
 	cout << "output as Mat\n";
 	HRimg = Mat::zeros(HR_rows, HR_cols, CV_64F);
-	int curIdx = 0;
-	for (int i = 0; i < HR_rows; i++) for (int j = 0; j < HR_cols; j++) {
-		HRimg.at<double>(i, j) = x(curIdx);
 
-		curIdx ++;
+	if (fullReconstruct) {
+		int curIdx = 0;
+		for (int i = 0; i < HR_rows; i++) for (int j = 0; j < HR_cols; j++) {
+			HRimg.at<double>(i, j) = x(curIdx);
+			
+			curIdx ++;
+		}
+	}
+	else {
+		for (int i = 0; i < HR_rows; i++) for (int j = 0; j < HR_cols; j++) {
+			HR_Pixel& cur_HR_pix = HR_pixels->access(i, j);
+
+			if (cur_HR_pix.highVar_idx != -1) {
+				HRimg.at<double>(i, j) = x(cur_HR_pix.highVar_idx);
+			}
+		}
 	}
 }
 

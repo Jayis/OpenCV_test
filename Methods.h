@@ -81,3 +81,7 @@ void optFlowHS (Mat& prev, Mat& curr, Mat& flow, int useInit = 0);
 
 //
 void calcVecMatDiff (Mat& a, Mat& b, Mat& output);
+
+void seeMatDiff (Mat& a, Mat& b, Mat& output);
+// 
+void showVarOfInfluencedPix (HR_Pixel_Array& HR_pixels, InfluenceRelation& relations, Mat& varMat);

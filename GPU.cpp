@@ -33,19 +33,17 @@ void ConjugateGradient_GPU (EigenSpMat& ATA, VectorXd& ATb, VectorXd& xxx)
     double alpha, beta, alpham1;
 
 	// This will pick the best possible CUDA capable device
-	/*
 	cudaDeviceProp deviceProp;
-	int* devID;
-	cudaError_t cudaerr = cudaGetDevice(devID);
-	cudaSetDevice(devID[0]);
-	cudaGetDeviceProperties(&deviceProp, devID[0]);
-	printf("GPU Device %d: \"%s\" with compute capability %d.%d\n\n", devID[0], deviceProp.name, deviceProp.major, deviceProp.minor);
+    int devID = findCudaDevice();
 
     if (devID < 0)
     {
         printf("exiting...\n");
-        exit(EXIT_SUCCESS);
+		return;
+        //exit(EXIT_SUCCESS);
     }
+
+	cudaGetDeviceProperties(&deviceProp, devID);
 
     // Statistics about the GPU device
     printf("> GPU device has %d Multi-Processors, SM %d.%d compute capabilities\n\n",
@@ -63,7 +61,8 @@ void ConjugateGradient_GPU (EigenSpMat& ATA, VectorXd& ATb, VectorXd& xxx)
         // profiled. Calling cudaDeviceReset causes all profile data to be
         // flushed before the application exits
         cudaDeviceReset();
-        exit(EXIT_SUCCESS);
+		return;
+        //exit(EXIT_SUCCESS);
     }
 	//*/
 
@@ -226,6 +225,40 @@ void L2GradientDescent_GPU (EigenSpMat& A, EigenSpMat& AT, EigenSpMat& CTC, Vect
 	int A_M = 0, A_N = 0, A_nz = 0, *A_I = NULL, *A_J = NULL;
 	double* A_val;
 
+	// This will pick the best possible CUDA capable device
+	cudaDeviceProp deviceProp;
+    int devID = findCudaDevice();
+
+    if (devID < 0)
+    {
+        printf("exiting...\n");
+		return;
+        //exit(EXIT_SUCCESS);
+    }
+
+	cudaGetDeviceProperties(&deviceProp, devID);
+
+    // Statistics about the GPU device
+    printf("> GPU device has %d Multi-Processors, SM %d.%d compute capabilities\n\n",
+           deviceProp.multiProcessorCount, deviceProp.major, deviceProp.minor);
+	
+    int version = (deviceProp.major * 0x10 + deviceProp.minor);
+
+    if (version < 0x11)
+    {
+        printf("%s: requires a minimum CUDA compute 1.1 capability\n", "conjugateGradient");
+
+        // cudaDeviceReset causes the driver to clean up all state. While
+        // not mandatory in normal operation, it is good practice.  It is also
+        // needed to ensure correct operation when the application is being
+        // profiled. Calling cudaDeviceReset causes all profile data to be
+        // flushed before the application exits
+        cudaDeviceReset();
+		return;
+        //exit(EXIT_SUCCESS);
+    }
+	//*/
+
 	EigenSpMat_Row A_Row = A;
 	A_Row.makeCompressed();
 	A_M = A_Row.cols();
@@ -374,11 +407,11 @@ void L2GradientDescent_GPU (EigenSpMat& A, EigenSpMat& AT, EigenSpMat& CTC, Vect
 		cublasDaxpy(cublasHandle, A_M, &alpha, d_CTCx, 1, d_x, 1);
 		// calc err^2
 		cublasDnrm2(cublasHandle, A_M, d_CTCx, 1, &err);
-		err = sqrt(err) / A_M;
+		err = 0.5 * sqrt(err) / A_M;
 
         cudaThreadSynchronize();
 
-        printf("iteration = %3d, residual = %e\n", k, err);
+        //printf("iteration = %3d, residual = %e\n", k, err);
         k++;
     }
 	printf("iteration = %3d, residual = %e\n", k, err);
@@ -423,3 +456,4 @@ void L2GradientDescent_GPU (EigenSpMat& A, EigenSpMat& AT, EigenSpMat& CTC, Vect
     // flushed before the application exits
     cudaDeviceReset();
 }
+

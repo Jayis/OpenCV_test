@@ -17,9 +17,13 @@
 #include "GA_Reconstruction.h"
 #include "BP_Reconstruction.h"
 #include "Block_Reconstruction.h"
+#include "NN_Reconstruction.h"
 
 using namespace std;
 using namespace cv;
+
+extern int tmp_blockPerAxis;
+extern double construct_t[21], tmp_t;
 
 void multiOptFlow_exp(String test_set = "");
 

@@ -27,15 +27,9 @@ Block_Constructor::Block_Constructor(vector<Mat>& imgs,
 	longSide = (BigHR_rows > BigHR_cols) ? BigHR_rows : BigHR_cols;
 	totalBlocksCount = pow(4, floor(log(longSide/200.f)/log(2.0f))); // origin: ceil
 
-	blockPerAxis = 16;//sqrt(totalBlocksCount);
+	blockPerAxis = tmp_blockPerAxis;//sqrt(totalBlocksCount);
 	blockWidth = double(BigHR_cols)/blockPerAxis;
 	blockHeight = double(BigHR_rows)/blockPerAxis;	
-	/*
-	dataChunks.resize(int(BigHR_rows / blockHeight) + 1);
-	for (int i = 0; i < dataChunks.size(); i++) {
-		dataChunks[i].resize(int(BigHR_cols / blockWidth) + 1);
-	}
-	//*/
 	
 	for (int i = 0; i < blockPerAxis + 1; i++) for (int j = 0; j < blockPerAxis + 1; j++)
 	{
@@ -73,6 +67,8 @@ Block_Constructor::Block_Constructor(vector<Mat>& imgs,
 		dataChunk.downBorder = i*blockHeight + rectHeight + overlappingPix;
 		dataChunk.SmallHR_rows = dataChunk.downBorder - dataChunk.upBorder;
 		dataChunk.SmallHR_cols = dataChunk.rightBorder - dataChunk.leftBorder;
+		dataChunk.fullReconstruct = true;
+		dataChunk.overLappingPix = overlappingPix;
 
 		dataChunks.push_back(dataChunk);
 	}
@@ -172,7 +168,7 @@ void Block_Constructor::construct(Mat& super_PSF,
 
 	time(&t0);
 
-#pragma omp parallel for
+//#pragma omp parallel for
 	for (int idx = 0; idx < dataChunks.size(); idx++)
 	{
 		cout << "constructing i: " << dataChunks[idx].blockRowIdx << ", j: " << dataChunks[idx].blockColIdx << endl;
@@ -181,15 +177,22 @@ void Block_Constructor::construct(Mat& super_PSF,
 		dataChunks[idx].tmp_HR_pixels = new HR_Pixel_Array(dataChunks[idx].SmallHR_rows, dataChunks[idx].SmallHR_cols);
 		dataChunks[idx].tmp_relations = new InfluenceRelation(dataChunks[idx], super_PSF, super_BPk, interp_scale);
 
-
+		
 		Linear_Constructor linearConstructor(dataChunks[idx]);
 		linearConstructor.addRegularization_grad2norm(0.05);
-		//linearConstructor.solve_by_CG_GPU();
-		linearConstructor.solve_by_CG();
+		linearConstructor.solve_by_CG_GPU();
+		//linearConstructor.solve_by_CG();
 		//linearConstructor.solve_by_L2GradientDescent();
 		//linearConstructor.solve_by_L2GradientDescent_GPU();
 		linearConstructor.output(dataChunks[idx].smallHR);
-		
+		//*/
+		/*
+		NN_Constructor NNConstructor( dataChunks[idx] );
+		NNConstructor.solve_by_LinearRefine( dataChunks[idx] );
+		//NNConstructor.solve();
+		NNConstructor.output(dataChunks[idx].smallHR);
+		//*/
+
 		dataChunks[idx].data_LR_pix.clear();
 		dataChunks[idx].data_LR_pix.shrink_to_fit();
 		delete dataChunks[idx].tmp_relations;
@@ -198,36 +201,10 @@ void Block_Constructor::construct(Mat& super_PSF,
 		//imwrite("output/datachunk" + int2str(dataChunks[idx].blockRowIdx) + int2str(dataChunks[idx].blockColIdx) + ".bmp", dataChunks[idx].smallHR);
 	}
 
-	/*
-	for (int i = 0; i < dataChunks.size(); i++) for (int j = 0; j < dataChunks[i].size(); j++)
-	{
-		if (dataChunks[i][j].inBigHR.height <= 0 || dataChunks[i][j].inBigHR.width <= 0)
-			continue;
-
-		cout << "constructing i: " << i << ", j: " << j << endl;
-		// we delete it at linear_constructor
-		gather_LR_pix(dataChunks[i][j], i, j);
-		dataChunks[i][j].tmp_HR_pixels = new HR_Pixel_Array(dataChunks[i][j].SmallHR_rows, dataChunks[i][j].SmallHR_cols);
-		dataChunks[i][j].tmp_relations = new InfluenceRelation(dataChunks[i][j], super_PSF, super_BPk, interp_scale);
-
-
-		Linear_Constructor linearConstructor(dataChunks[i][j]);
-		linearConstructor.addRegularization_grad2norm(0.05);
-		//linearConstructor.solve_by_CG();
-		linearConstructor.solve_by_L2GradientDescent();
-		linearConstructor.output(dataChunks[i][j].smallHR);
-		
-		dataChunks[i][j].data_LR_pix.clear();
-		dataChunks[i][j].data_LR_pix.shrink_to_fit();
-		delete dataChunks[i][j].tmp_relations;
-		delete dataChunks[i][j].tmp_HR_pixels;
-
-		//imwrite("output/datachunk" + int2str(i) + int2str(j) + ".bmp", dataChunks[i][j].smallHR);
-	}
-	//*/
 	time(&t1);
 
 	cout << "construction time: " << difftime(t1, t0) << endl;
+	tmp_t = difftime(t1, t0);
 }
 
 void Block_Constructor::output(Mat& HRimg)

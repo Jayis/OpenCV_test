@@ -6,6 +6,7 @@
 #define EX_small (1e-8)
 #define EX_big (1e8)
 #define SQR(x) ((x)*(x))
+#define MAX(x,y) ((x)>(y)?(x):(y))
 
 typedef Eigen::Triplet<double> T;
 //typedef Eigen::SparseMatrix<double, Eigen::RowMajor> EigenSpRowMat;

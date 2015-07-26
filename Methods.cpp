@@ -966,3 +966,47 @@ void calcVecMatDiff (Mat& a, Mat& b, Mat& output)
 		output.at<double>(i, j) = ExpNegSQR(tmp1[0]-tmp2[0], tmp1[1]-tmp2[1]);
 	}
 }
+
+void seeMatDiff (Mat& a, Mat& b, Mat& output)
+{
+	output = Mat::zeros(a.size(), CV_64F);
+
+	for (int i = 0; i < a.rows; i++) for (int j = 0; j < a.cols; j++)
+	{
+		double& tmp1 = a.at<double>(i, j);
+		double& tmp2 = b.at<double>(i, j);
+
+		output.at<double>(i, j) = sqrt(SQR(tmp1-tmp2));
+		//output.at<double>(i, j) = (sqrt(SQR(tmp1-tmp2) > 1 ? 255:0));
+	}
+}
+
+void showVarOfInfluencedPix (HR_Pixel_Array& HR_pixels, InfluenceRelation& relations, Mat& varMat)
+{
+	varMat = Mat::zeros(HR_pixels.HR_rows, HR_pixels.HR_cols, CV_64F);
+
+	for (int i = 0; i < HR_pixels.HR_rows; i++) for (int j = 0; j < HR_pixels.HR_cols; j++)
+	{
+		HR_Pixel& cur_hr_pix = HR_pixels.access(i, j);
+
+		double avg = 0, var = 0;;
+
+		for (int idx = 0; idx < cur_hr_pix.influence_link_cnt; idx++)
+		{
+			avg += relations.influence_links[cur_hr_pix.influence_link_start + idx].pixel->val;
+		}
+		avg /= cur_hr_pix.influence_link_cnt;
+
+		for (int idx = 0; idx < cur_hr_pix.influence_link_cnt; idx++)
+		{
+			var += SQR(relations.influence_links[cur_hr_pix.influence_link_start + idx].pixel->val - avg);
+		}
+
+		var = sqrt(var);
+		var /= cur_hr_pix.influence_link_cnt;
+
+		cur_hr_pix.var = var;
+		varMat.at<double>(i, j) = var;
+		//varMat.at<double>(i, j) = ((var > 0.5)?255:0);
+	}	
+}
