@@ -422,7 +422,7 @@ void flow2H_test () {
 }
 
 void LinearConstruct_test () {
-	String test_set = "bill256";	
+	String test_set = "bb2Crop2000";	
 	int n = 4;
 
 	vector<Mat> imgsC1;
@@ -644,8 +644,8 @@ void LinearConstruct_test () {
 	Mat HRimg, HRimgC3;
 	Mat HRimg1, diff, colorDiff;
 	
-	/*
-	for (int i = 5; i < 6; i++) {
+	
+	for (int i = 16; i < 17; i++) {
 		tmp_blockPerAxis = i;
 		Block_Constructor divided2Blocks( imgsC1, combineFlows, combineConfs, scale, PSF);
 		divided2Blocks.output(HRimg);
@@ -665,26 +665,28 @@ void LinearConstruct_test () {
 	time_t t0, t1;
 	time(&t0);
 	NN_Constructor NNConstructor( imgsC1, combineFlows, combineConfs, scale, PSF);
-	NNConstructor.solve_by_LinearRefine();
-	NNConstructor.output(HRimg);
+	NNConstructor.solve();
+	NNConstructor.output(HRimg1);
 	time(&t1);
 
 	cout << difftime(t1, t0) << endl;
 	//*/
 	/*
 	seeMatDiff(HRimg, HRimg1, diff);
+	diff *= 2;
 	outputHRcolor(diff, imgsC3[0], HRimgC3);
 	applyColorMap(HRimgC3, colorDiff, COLORMAP_JET);
 
 	imwrite("output/colorDiff.bmp", colorDiff);
 	//*/
-	
+	/*
 	TermCriteria BPstop;
 	BPstop.type = TermCriteria::COUNT + TermCriteria::EPS;
-	BPstop.maxCount = 1500;
-	BPstop.epsilon = 0.05;
-	//*/
+	BPstop.maxCount = 500;
+	BPstop.epsilon = 0.01;
+	
 	BP_Constructor BPconstructor(HRimg, scale, imgsC1, combineFlows, PSF, BPk, BPstop, combineConfs);
+	//*/
 
 	//BackProjection(HRimg, scale, imgsC1, combineFlows, PSF, BPk, BPstop);
 	//BackProjection_Confidence(HRimg, scale, imgsC1, combineFlows, PSF, BPk, BPstop, combineConfs);

@@ -94,6 +94,7 @@ void Linear_Constructor::constructor( vector<Mat>& LR_imgs, vector<Mat>& flows, 
 							confs);
 
 	needRelease = true;
+	fullReconstruct = true;
 }
 
 void Linear_Constructor::addDataFidelityWithConf(vector<Mat>& conf ) {
@@ -451,6 +452,8 @@ void Linear_Constructor::solve_by_L1GradientDescent()
 	C = EigenSpMat( rowCnt_C, HR_pixelCount );
 	x_n = VectorXd( HR_pixelCount );
 	x_n1 = VectorXd( HR_pixelCount );
+	VectorXd bAx = VectorXd( rowCnt_A);
+	VectorXd CTCx = VectorXd( HR_pixelCount );
 
 	cout << "forming A ...\n";
 	A.setFromTriplets( A_triplets.begin(), A_triplets.end() );
@@ -488,16 +491,34 @@ void Linear_Constructor::solve_by_L1GradientDescent()
 	ATb = AT * b;
 
 	double err = EX_big;
+	int k = 1;
+	int max_iter = 1000;
 	// 0.0001
-	while (err > 0.01) {
+	while (err > 0.0001 && k < max_iter) {
 
-		x_n1 = x_n + 1 * ( AT * (b - (A * x_n) / (b - (A * x_n)).norm() ) - (CTC * x_n) / CTC_norm ); // 26 sec
+		CTCx = (CTC * x_n);
+		bAx = (b - (A * x_n));
+
+		for (i = 0; i < HR_pixelCount; i++)
+		{
+			CTCx(i) *= 0.1 / (abs(CTCx(i)) + EX_small);
+		}
+		for (i = 0; i < rowCnt_A; i++)
+		{
+			bAx(i) *= 1.0 / (abs(bAx(i)) + EX_small);
+		}
+
+		x_n1 = x_n + 0.5 * ( AT * (bAx /*/ (bAx.norm() + EX_small)/**/ ) - ( CTCx/* / (CTCx.norm() + EX_small)/**/ ) ); // 26 sec
 
 		err = (x_n1 - x_n).norm() / HR_pixelCount;
+
 		cout << "err: " << err << endl;
 
 		x_n = x_n1;
+
+		k++;
 	}
+	printf("iteration = %3d, residual = %e\n", k, err);
 
 	x = x_n1;
 }

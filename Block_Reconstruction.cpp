@@ -21,7 +21,7 @@ Block_Constructor::Block_Constructor(vector<Mat>& imgs,
 
 	//--------------------------------
 	// not sure how to set over lap pix
-	overlappingPix = PSF.rows + 1;
+	overlappingPix = PSF.rows + 2;
 	
 	
 	longSide = (BigHR_rows > BigHR_cols) ? BigHR_rows : BigHR_cols;
@@ -168,7 +168,7 @@ void Block_Constructor::construct(Mat& super_PSF,
 
 	time(&t0);
 
-//#pragma omp parallel for
+#pragma omp parallel for
 	for (int idx = 0; idx < dataChunks.size(); idx++)
 	{
 		cout << "constructing i: " << dataChunks[idx].blockRowIdx << ", j: " << dataChunks[idx].blockColIdx << endl;
@@ -177,16 +177,17 @@ void Block_Constructor::construct(Mat& super_PSF,
 		dataChunks[idx].tmp_HR_pixels = new HR_Pixel_Array(dataChunks[idx].SmallHR_rows, dataChunks[idx].SmallHR_cols);
 		dataChunks[idx].tmp_relations = new InfluenceRelation(dataChunks[idx], super_PSF, super_BPk, interp_scale);
 
-		
+		/*
 		Linear_Constructor linearConstructor(dataChunks[idx]);
 		linearConstructor.addRegularization_grad2norm(0.05);
-		linearConstructor.solve_by_CG_GPU();
-		//linearConstructor.solve_by_CG();
+		//linearConstructor.solve_by_L1GradientDescent();
+		//linearConstructor.solve_by_CG_GPU();
+		linearConstructor.solve_by_CG();
 		//linearConstructor.solve_by_L2GradientDescent();
 		//linearConstructor.solve_by_L2GradientDescent_GPU();
 		linearConstructor.output(dataChunks[idx].smallHR);
 		//*/
-		/*
+		
 		NN_Constructor NNConstructor( dataChunks[idx] );
 		NNConstructor.solve_by_LinearRefine( dataChunks[idx] );
 		//NNConstructor.solve();

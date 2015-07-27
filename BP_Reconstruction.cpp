@@ -31,7 +31,7 @@ void BP_Constructor::constructor( Mat& HRimg, double scale, vector<Mat>& imgs, v
 	// all LR images should have same Size()
 
 	// parameter
-	BP_c = 0.5;
+	BP_c = 2;
 	interp_scale = 500;
 
 	int i, j, k;
@@ -196,26 +196,40 @@ void BP_Constructor::solve()
 			//*/
 			/*
 			if (cur_x < tmp_vec[1]) {
-				L1_reg = 0.75 * (tmp_vec[1] - cur_x) + 0.25 * (tmp_vec[2] - cur_x);
+				L1_reg = 0.75 * (tmp_vec[1] - cur_x) + 0.25 * (tmp_vec[0] - cur_x);
 			}
             if (cur_x > tmp_vec[2]) {
 				L1_reg = 0.75 * (tmp_vec[2] - cur_x) + 0.25 * (tmp_vec[3] - cur_x);
 			}
 			//*/
+			/*
 			if (cur_x < tmp_vec[0]) {
-				L1_reg = tmp_vec[1] - cur_x;
+				//L1_reg = tmp_vec[2] - cur_x;
+				//L1_reg = 0.75 * (tmp_vec[1] - cur_x) + 0.25 * (tmp_vec[0] - cur_x);
+				L1_reg = 0.25 * (tmp_vec[2] - cur_x)+ 0.25 * (tmp_vec[1] - cur_x) + 0.25 * (tmp_vec[0] - cur_x);
 			}
 			else if (cur_x < tmp_vec[1]) {
-				L1_reg = tmp_vec[2] - cur_x;
+				//L1_reg = tmp_vec[1] - cur_x;
+				//L1_reg = 0.5 * (tmp_vec[1] - cur_x);
+				L1_reg = 0.25 * (tmp_vec[2] - cur_x)+ 0.25 * (tmp_vec[1] - cur_x);
 			}
 			if (cur_x > tmp_vec[3]) {
-				L1_reg = tmp_vec[2] - cur_x;
+				//L1_reg = tmp_vec[1] - cur_x;
+				//L1_reg = 0.75 * (tmp_vec[2] - cur_x) + 0.25 * (tmp_vec[3] - cur_x);
+				L1_reg = 0.25 * (tmp_vec[2] - cur_x)+ 0.25 * (tmp_vec[1] - cur_x) + 0.25 * (tmp_vec[3] - cur_x);
 			}
 			else if (cur_x > tmp_vec[2]) {
-				L1_reg = tmp_vec[1] - cur_x;
+				//L1_reg = tmp_vec[2] - cur_x;
+				//L1_reg = 0.5 * (tmp_vec[2] - cur_x);
+				L1_reg = 0.25 * (tmp_vec[2] - cur_x)+ 0.25 * (tmp_vec[1] - cur_x);
 			}
+			//*/
+			L1_reg = 0.25 * (tmp_vec[3] - cur_x)/sqrt(SQR(tmp_vec[3] - cur_x) + EX_small) +
+				0.25 * (tmp_vec[2] - cur_x)/sqrt(SQR(tmp_vec[2] - cur_x) + EX_small) + 
+				0.25 * (tmp_vec[1] - cur_x)/sqrt(SQR(tmp_vec[1] - cur_x) + EX_small) +
+				0.25 * (tmp_vec[0] - cur_x)/sqrt(SQR(tmp_vec[0] - cur_x) + EX_small);
 
-			sum_diff += 0.05 * L1_reg;
+			sum_diff += 0.5 * L1_reg;
 			//*/
 
 			// update HR

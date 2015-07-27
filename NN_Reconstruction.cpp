@@ -4,6 +4,10 @@ NN_Constructor::NN_Constructor( vector<Mat>& LR_imgs, vector<Mat>& flows, vector
 {
 	constructor(LR_imgs, flows, confs, scale, PSF);
 
+	Mat var, varColor;
+	showVarOfInfluencedPix(*HR_pixels,*relations, var);
+	imwrite("output/var.bmp", var*100);
+
 	K = LR_imgCount;
 
 	needRelease = true;
@@ -18,7 +22,7 @@ NN_Constructor::NN_Constructor( DataChunk& dataChunk )
 	relations = dataChunk.tmp_relations;
 	HR_pixels = dataChunk.tmp_HR_pixels;
 
-	rim = dataChunk.overLappingPix + 1;
+	rim = dataChunk.overLappingPix;
 	//rim = 0;
 	K = 4;
 
@@ -100,7 +104,7 @@ void NN_Constructor::solve_by_LinearRefine(DataChunk& dataChunk)
 {
 	Mat var, varColor;
 	showVarOfInfluencedPix(*HR_pixels,*relations, var);
-	imwrite("output/var.bmp", var*125);
+	imwrite("output/var.bmp", var*100);
 
 	DataChunk tmp_dataChunk;
 	tmp_dataChunk.tmp_HR_pixels = HR_pixels;
