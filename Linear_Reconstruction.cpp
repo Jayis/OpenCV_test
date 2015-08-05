@@ -274,12 +274,13 @@ void Linear_Constructor::solve_by_CG() {
 	ATb = AT * b;
 
 	cout << "construct solver\n";
-	ConjugateGradient<EigenSpMat> CG_sover(ATA);
+	ConjugateGradient<EigenSpMat> CG_solver(ATA);
 	cout << "solving...\n";
-	x = CG_sover.solve(ATb);
+	x = CG_solver.solve(ATb);
+	cout << "cg_tol: " << CG_solver.tolerance() << endl;
 }
 
-void Linear_Constructor::solve_by_CG_GPU() {
+void Linear_Constructor::solve_by_CG_GPU_old(GPU_Context& gpu_context) {
 	
 	int i;
 
@@ -322,8 +323,42 @@ void Linear_Constructor::solve_by_CG_GPU() {
 
 	cout << "call GPU solver\n";
 	cout << "solving...\n";
-	//ConjugateGradient_GPU(ATA, ATb, x);
+	gpu_context.ConjugateGradient_GPU_squareMat(ATA, ATb, x);
 }
+
+void Linear_Constructor::solve_by_CG_GPU(GPU_Context& gpu_context) {
+	
+	int i;
+
+	cout << "solve by CG\n";
+
+	cout << "HR_pixelCount: "<< HR_pixelCount << endl;
+	A = EigenSpMat( rowCnt_A + rowCnt_C, HR_pixelCount );
+	b = VectorXd( rowCnt_A + rowCnt_C );
+	x = VectorXd( HR_pixelCount );
+
+	cout << "forming A ...\n";
+	for (i = 0; i < C_triplets.size(); i++) {
+		A_triplets.push_back(T(C_triplets[i].row() + rowCnt_A, C_triplets[i].col(), C_triplets[i].value()));
+	}
+	A.setFromTriplets( A_triplets.begin(), A_triplets.end() );
+	cout << "A.size(): " << A.rows() << ", " << A.cols() << endl;
+	//A.makeCompressed();
+
+	cout << "forming b ...\n";
+
+	for (i = 0; i < rowCnt_A; i++) {
+		b(i) = b_vec[i];
+	}
+	for (; i < rowCnt_A + rowCnt_C; i++) {
+		b(i) = 0;
+	}
+
+	cout << "call GPU solver\n";
+	cout << "solving...\n";
+	gpu_context.ConjugateGradient_GPU(A, b, x);
+}
+
 
 void Linear_Constructor::solve_by_L2GradientDescent()
 {
@@ -394,7 +429,7 @@ void Linear_Constructor::solve_by_L2GradientDescent()
 	x = x_n1;
 }
 
-void Linear_Constructor::solve_by_L2GradientDescent_GPU()
+void Linear_Constructor::solve_by_L2GradientDescent_GPU(GPU_Context& gpu_context)
 {
 	int i;
 
@@ -438,7 +473,7 @@ void Linear_Constructor::solve_by_L2GradientDescent_GPU()
 	//cout << "multiplying ATb...\n";
 	//ATb = AT * b;
 
-	//L2GradientDescent_GPU(A, AT, CTC, b, x);
+	gpu_context.L2GradientDescent_GPU(A, CTC, b, x);
 }
 
 void Linear_Constructor::solve_by_L1GradientDescent()

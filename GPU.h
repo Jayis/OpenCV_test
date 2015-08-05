@@ -21,10 +21,29 @@
 
 using namespace Eigen;
 
-void eigenSpMat2cudaCSR(EigenSpMat_Row& ATA, int *I, int *J, double *val, int N, int nz);
+void eigenSpMat2cudaCSR(EigenSpMat_Row& A, int *I, int *J, double *val, int N, int nz);
 
-void ConjugateGradient_GPU (EigenSpMat& ATA, VectorXd& ATb, VectorXd& xxx);
+class GPU_Context
+{
+public:
+	GPU_Context();
+	~GPU_Context();
 
-void L2GradientDescent_GPU (EigenSpMat& A, EigenSpMat& AT, EigenSpMat& CTC, VectorXd& b, VectorXd& xxx);
+	void ConjugateGradient_GPU (EigenSpMat& A, VectorXd& b_in, VectorXd& x_in);
+	void ConjugateGradient_GPU_squareMat (EigenSpMat& ATA, VectorXd& ATb, VectorXd& x_in);
+	void L2GradientDescent_GPU (EigenSpMat& A, EigenSpMat& CTC, VectorXd& b, VectorXd& xxx);
 
-void SparseMatMultiplication (EigenSpMat);
+private:
+	bool GPU_get;
+	//
+	int devID;
+	cudaDeviceProp deviceProp;
+	// cublas
+	cublasHandle_t cublasHandle;
+	cublasStatus_t cublasStatus;
+	// cusparse
+	cusparseHandle_t cusparseHandle;
+    cusparseStatus_t cusparseStatus;
+	// mat descr
+	cusparseMatDescr_t descr;
+};

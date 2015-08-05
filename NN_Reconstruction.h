@@ -40,4 +40,4 @@ private:
 	bool needRelease;
 };
 
-bool compare_hpsf (Influenced_Pixel* a, Influenced_Pixel* b);
+bool compare_hBP (Influenced_Pixel* a, Influenced_Pixel* b);

@@ -166,6 +166,8 @@ void Block_Constructor::construct(Mat& super_PSF,
 {
 	time_t t0, t1;
 
+	GPU_Context GPU_context;
+
 	time(&t0);
 
 #pragma omp parallel for
@@ -177,20 +179,21 @@ void Block_Constructor::construct(Mat& super_PSF,
 		dataChunks[idx].tmp_HR_pixels = new HR_Pixel_Array(dataChunks[idx].SmallHR_rows, dataChunks[idx].SmallHR_cols);
 		dataChunks[idx].tmp_relations = new InfluenceRelation(dataChunks[idx], super_PSF, super_BPk, interp_scale);
 
-		/*
+		
 		Linear_Constructor linearConstructor(dataChunks[idx]);
 		linearConstructor.addRegularization_grad2norm(0.05);
 		//linearConstructor.solve_by_L1GradientDescent();
-		//linearConstructor.solve_by_CG_GPU();
+		//linearConstructor.solve_by_CG_GPU_old(GPU_context);
+		//linearConstructor.solve_by_CG_GPU(GPU_context);
 		linearConstructor.solve_by_CG();
 		//linearConstructor.solve_by_L2GradientDescent();
 		//linearConstructor.solve_by_L2GradientDescent_GPU();
 		linearConstructor.output(dataChunks[idx].smallHR);
 		//*/
-		
+		/*
 		NN_Constructor NNConstructor( dataChunks[idx] );
-		NNConstructor.solve_by_LinearRefine( dataChunks[idx] );
-		//NNConstructor.solve();
+		//NNConstructor.solve_by_LinearRefine( dataChunks[idx] );
+		NNConstructor.solve();
 		NNConstructor.output(dataChunks[idx].smallHR);
 		//*/
 

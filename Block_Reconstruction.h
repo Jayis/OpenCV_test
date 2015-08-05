@@ -9,6 +9,7 @@
 #include "DataStructures.h"
 #include "Methods.h"
 #include "NN_Reconstruction.h"
+#include "GPU.h"
 
 using namespace cv;
 

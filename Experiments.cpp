@@ -645,6 +645,11 @@ void LinearConstruct_test () {
 	Mat HRimg1, diff, colorDiff;
 	
 	
+	// for CPU_CG min(i) = 4, 3 will swap out
+	// for CPU_CG_multi min(i) = 7
+	// for GPU_CG_squareMat min(i) = 4
+	// for GPU_CG min(i) = 6
+	
 	for (int i = 16; i < 17; i++) {
 		tmp_blockPerAxis = i;
 		Block_Constructor divided2Blocks( imgsC1, combineFlows, combineConfs, scale, PSF);

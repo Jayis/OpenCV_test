@@ -24,7 +24,7 @@ NN_Constructor::NN_Constructor( DataChunk& dataChunk )
 
 	rim = dataChunk.overLappingPix;
 	//rim = 0;
-	K = 4;
+	K = 16;
 
 	needRelease = false;
 }
@@ -49,6 +49,17 @@ void NN_Constructor::constructor( vector<Mat>& LR_imgs, vector<Mat>& flows, vect
 	Mat super_PSF, super_BPk;
 	preInterpolation ( PSF, super_PSF, interp_scale);
 	super_BPk = super_PSF;
+
+	// if we want different BPk
+	/*
+	Mat dot = Mat::zeros(5,5,CV_64F);
+	dot.at<double>(2, 2) = 1; 
+	double BPk_sigma = 10 * SQR(scale/2); // default = 0.7
+	int PBk_size =  5 * scale / 2;
+	Mat BPk = Mat::zeros(PBk_size,PBk_size,CV_64F);
+	GaussianBlur(dot, BPk, Size( PBk_size, PBk_size), BPk_sigma, BPk_sigma, BORDER_REPLICATE);
+	preInterpolation (BPk, super_BPk, interp_scale);
+	//*/
 
 	//----- for every pixel x of HR image, record influenced pixel y
 	// initialize bucket
@@ -86,15 +97,15 @@ void NN_Constructor::solve()
 			tmp.push_back( &(relations->influence_links[cur_hr_pix.influence_link_start + idx]) );
 		}
 		
-		sort(tmp.begin(), tmp.end(), compare_hpsf);
+		sort(tmp.begin(), tmp.end(), compare_hBP);
 
 		cur_hr_pix.val = 0;
 		double tmp_hBP_sum = 0;
 
 		for (int k = 0; k < K && k < tmp.size(); k++)
 		{
-			tmp_hBP_sum += tmp[k]->hBP;
-			cur_hr_pix.val += tmp[k]->hBP * tmp[k]->pixel->val;
+			tmp_hBP_sum += tmp[k]->hBP * tmp[k]->pixel->confidence;
+			cur_hr_pix.val += tmp[k]->hBP * tmp[k]->pixel->confidence * tmp[k]->pixel->val;
 		}
 		cur_hr_pix.val /= tmp_hBP_sum;
 	}	
@@ -211,7 +222,7 @@ void NN_Constructor::solve_by_LinearRefine(DataChunk& dataChunk)
 	/**/
 }
 
-bool compare_hpsf (Influenced_Pixel* a, Influenced_Pixel* b)
+bool compare_hBP (Influenced_Pixel* a, Influenced_Pixel* b)
 { 
 	return (a->hBP > b->hBP); 
 }

@@ -7,7 +7,7 @@
 #include "Methods.h"
 #include "Macros.h"
 #include "Tools.h"
-//#include "GPU.h"
+#include "GPU.h"
 
 using namespace cv;
 using namespace Eigen;
@@ -23,9 +23,10 @@ public:
 	void addRegularization_grad2norm(double gamma);
 
 	void solve_by_CG();
-	void solve_by_CG_GPU();
+	void solve_by_CG_GPU_old(GPU_Context& gpu_context);
+	void solve_by_CG_GPU(GPU_Context& gpu_context);
 	void solve_by_L2GradientDescent();
-	void solve_by_L2GradientDescent_GPU();
+	void solve_by_L2GradientDescent_GPU(GPU_Context& gpu_context);
 	void solve_by_L1GradientDescent();
 
 	void output(Mat& HRimg);
