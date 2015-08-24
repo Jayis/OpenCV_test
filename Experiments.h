@@ -9,9 +9,9 @@
 
 #include "Linear_Reconstruction.h"
 //#include "FlexISP_Reconstruction.h" // i've remove it from project, for convenient, since this one is never done
-#include "BackProjection.h"
+//#include "BackProjection.h" // replace it with BP_reconstruction.h
 #include "Methods.h"
-#include "ExampleBased_Reconstruction.h"
+//#include "ExampleBased_Reconstruction.h" // fail
 #include "Mod_tv1flow.h"
 #include "SymmConfOptFlowTV1.h"
 #include "GA_Reconstruction.h"
@@ -25,22 +25,8 @@ using namespace cv;
 extern int tmp_blockPerAxis;
 extern double construct_t[21], tmp_t;
 
-void multiOptFlow_exp(String test_set = "");
-
-void symmetricOptFlow_test();
-
-void exampleBased_test ();
-
-void test();
-
-void flow2H_test ();
-
 void LinearConstruct_test ();
 
 void FlexISP_test ();
-
-void OptFlow_BP_test ();
-
-void OptFlow_ConfBP_test ();
 
 void GA_test();

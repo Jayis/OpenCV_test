@@ -18,11 +18,6 @@ int main() {
 		printf(" %2d * %2d construction time: %6.0f \n", i, i, construct_t[i]);
 	}
 
-	//GA_test();
-	
-	
-	//symmetricOptFlow_test();
-
 	system("pause");
 }
 //*/
